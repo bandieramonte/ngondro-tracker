@@ -1,24 +1,29 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import HeaderMenu from "@/components/HeaderMenu";
+import { exportBackup, importBackup } from "@/utils/backup";
+import { Stack } from "expo-router";
+import { useEffect } from "react";
+import * as appService from "../services/appService";
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+export default function Layout() {
 
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
+    useEffect(() => {
+        appService.initializeApp();
+    }, []);
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+    return (
+        <Stack
+            screenOptions={{
+                headerTitle: "Ngöndro Tracker",
+
+                headerRight: () => (
+                    <HeaderMenu
+                        onExport={exportBackup}
+                        onImport={importBackup}
+                    />
+                )
+            }}
+        />
+    );
+
 }
