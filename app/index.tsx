@@ -95,9 +95,11 @@ export default function Dashboard() {
     updateReachedState(
       rows.map(practice => ({
         id: practice.id,
-        reached: practice.total >= practice.targetCount,
+        total: practice.total,
+        targetCount: practice.targetCount,
       }))
-    ); setPractices(rows);
+    );
+    setPractices(rows);
     setStreak(dashboardService.getCurrentStreak());
   }
 
@@ -215,7 +217,7 @@ export default function Dashboard() {
 
       {practices.map((practice) => {
 
-        const currentCycleProgress = practice.total > practice.targetCount ? 1 : (practice.total % practice.targetCount) / practice.targetCount;
+        const currentCycleProgress = practice.total >= practice.targetCount ? 1 : (practice.total % practice.targetCount) / practice.targetCount;
         const expectedTargetDate = getExpectedTargetDate(practice);
 
         return (

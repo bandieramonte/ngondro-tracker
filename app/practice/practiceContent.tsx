@@ -61,17 +61,12 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
         loadPracticeData();
 
         const timeout = setTimeout(() => {
-            loadSessions();
             loadDailyData(rangeDays);
         }, 0);
 
         return () => clearTimeout(timeout);
 
     }, [practiceId, rangeDays, viewMode]);
-
-    useEffect(() => {
-        loadSessions();
-    }, []);
 
     useEffect(() => {
         let showTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -108,32 +103,24 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
     useFocusEffect(
         useCallback(() => {
             loadPracticeData();
-            loadSessions();
             loadDailyData(rangeDays);
         }, [practiceId, rangeDays, viewMode])
     );
 
-    useEffect(() => {
-        updateReachedState([
-            {
-                id: practiceId,
-                reached: targetCount > 0 && total >= targetCount,
-            }
-        ]);
-    }, [practiceId, targetCount, total]);
-
-    function loadSessions() {
-
+    function loadSessions(overrideTargetCount?: number) {
         const rows = sessionService.getSessionsForPractice(practiceId) as Session[];
         setSessions(rows);
 
         const nextTotal = rows.reduce((sum, s) => sum + s.count, 0);
         setTotal(nextTotal);
 
-        updateReachedState([
+        const effectiveTargetCount = overrideTargetCount ?? targetCount;
+
+        void updateReachedState([
             {
                 id: practiceId,
-                reached: targetCount > 0 && nextTotal >= targetCount,
+                total: nextTotal,
+                targetCount: effectiveTargetCount,
             }
         ]);
     }
@@ -152,6 +139,7 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
             setImageKey(practice.imageKey ?? null);
             setDefaultAddCount(String(practice.defaultAddCount ?? 108));
             setTargetCount(practice.targetCount);
+            loadSessions(practice.targetCount);
         }
     }
 
@@ -217,7 +205,7 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
 
         const width = Dimensions.get("window").width - 40;
         const height = 220;
-        const padding = { top: 30, bottom: 30, left: 30, right: 10 };
+        const padding = total >= 1000000 ? { top: 30, bottom: 30, left: 50, right: 10 } : total >= 100000 ? { top: 30, bottom: 30, left: 40, right: 10 } : { top: 30, bottom: 30, left: 30, right: 10 };
         const chartWidth = width - padding.left - padding.right;
         const chartHeight = height - padding.top - padding.bottom;
         const values = dailyData.map(d => d.total);
@@ -560,9 +548,8 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
                 <View style={styles.totalRow}>
                     <View style={styles.totalWrapper}>
                         <Text style={styles.total}>
-                            Total: {total}
+                            {total + ' ' + (!!targetCount ? '/ ' + targetCount : '')}
                         </Text>
-
                         {isCelebrating(practiceId) && renderCelebrationOverlay()}
                     </View>
 
@@ -609,7 +596,7 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
                     Practice History
                 </Text>
                 <View style={{ flexDirection: "row", gap: 10, zIndex: 100 }}>
-                    <View style={{ flexDirection: "row", gap: 10, marginBottom: 20 }}>
+                    <View style={{ flexDirection: "row", gap: 10, marginBottom: 20, marginTop: 5 }}>
 
                         <Button
                             title="Chart"

@@ -1,8 +1,20 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 
+type ReachedCelebrationItem = {
+    id: string;
+    total: number;
+    targetCount: number;
+};
+
+function storageKey(id: string) {
+    return `highestCelebratedTarget:${id}`;
+}
+
 export function useReachedCelebration() {
-    const previousReachedRef = useRef<Record<string, boolean>>({});
+    const previousTotalRef = useRef<Record<string, number>>({});
+    const highestCelebratedTargetRef = useRef<Record<string, number>>({});
     const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const sparkleAnimationsRef = useRef<Animated.CompositeAnimation[]>([]);
     const [celebratingId, setCelebratingId] = useState<string | null>(null);
@@ -77,19 +89,33 @@ export function useReachedCelebration() {
         }, 3000);
     }
 
-    function updateReachedState(items: { id: string; reached: boolean }[]) {
-        const nextReachedMap: Record<string, boolean> = {};
-
+    async function updateReachedState(items: ReachedCelebrationItem[]) {
         for (const item of items) {
-            const reachedBefore = previousReachedRef.current[item.id] ?? false;
-            nextReachedMap[item.id] = item.reached;
+            let highestCelebratedTarget = highestCelebratedTargetRef.current[item.id];
+            if (highestCelebratedTarget === undefined) {
+                const storedValue = await AsyncStorage.getItem(storageKey(item.id));
+                highestCelebratedTarget = storedValue ? Number(storedValue) : 0;
+                highestCelebratedTargetRef.current[item.id] = highestCelebratedTarget;
+            }
 
-            if (item.reached && !reachedBefore) {
+            const previousTotal = previousTotalRef.current[item.id] ?? item.total;
+            const crossedTarget =
+                previousTotal < item.targetCount &&
+                item.total >= item.targetCount;
+
+            const shouldCelebrate =
+                item.targetCount > 0 &&
+                crossedTarget &&
+                item.targetCount > highestCelebratedTarget;
+
+            if (shouldCelebrate) {
+                highestCelebratedTargetRef.current[item.id] = item.targetCount;
+                await AsyncStorage.setItem(storageKey(item.id), String(item.targetCount));
                 startCelebration(item.id);
             }
-        }
 
-        previousReachedRef.current = nextReachedMap;
+            previousTotalRef.current[item.id] = item.total;
+        }
     }
 
     function isCelebrating(id: string) {
