@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Animated, Button, Dimensions, FlatList, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import Svg, { Line, Rect, Text as SvgText } from "react-native-svg";
 import { practiceImages } from "../../constants/practiceImages";
+import { useReachedCelebration } from "../../hooks/useReachedCelebration";
 import * as practiceService from "../../services/practiceService";
 import * as sessionService from "../../services/sessionService";
 
@@ -37,7 +38,15 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
     const titleRowRef = useRef<View | null>(null);
     const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
     const [showTableTooltip, setShowTableTooltip] = useState(false);
-
+    const [targetCount, setTargetCount] = useState(0);
+    const {
+        celebrationFade,
+        sparkle1,
+        sparkle2,
+        sparkle3,
+        updateReachedState,
+        isCelebrating,
+    } = useReachedCelebration();
     useEffect(() => {
         if (imageKey && practiceImages[imageKey]) {
             const source = Image.resolveAssetSource(practiceImages[imageKey]);
@@ -104,13 +113,29 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
         }, [practiceId, rangeDays, viewMode])
     );
 
+    useEffect(() => {
+        updateReachedState([
+            {
+                id: practiceId,
+                reached: targetCount > 0 && total >= targetCount,
+            }
+        ]);
+    }, [practiceId, targetCount, total]);
+
     function loadSessions() {
 
         const rows = sessionService.getSessionsForPractice(practiceId) as Session[];
         setSessions(rows);
 
-        const total = rows.reduce((sum, s) => sum + s.count, 0);
-        setTotal(total);
+        const nextTotal = rows.reduce((sum, s) => sum + s.count, 0);
+        setTotal(nextTotal);
+
+        updateReachedState([
+            {
+                id: practiceId,
+                reached: targetCount > 0 && nextTotal >= targetCount,
+            }
+        ]);
     }
 
     function addSession(count: number) {
@@ -126,6 +151,7 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
             setPracticeName(practice.name);
             setImageKey(practice.imageKey ?? null);
             setDefaultAddCount(String(practice.defaultAddCount ?? 108));
+            setTargetCount(practice.targetCount);
         }
     }
 
@@ -449,6 +475,44 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
         outputRange: ["0deg", "180deg"],
     });
 
+    function renderCelebrationOverlay() {
+        const sparkleStyle = (value: Animated.Value, translateX: number, translateY: number) => ({
+            opacity: value.interpolate({
+                inputRange: [0, 0.2, 0.8, 1],
+                outputRange: [0, 1, 1, 0],
+            }),
+            transform: [
+                { translateX },
+                {
+                    translateY: value.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, translateY],
+                    }),
+                },
+                {
+                    scale: value.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0.6, 1.1, 0.8],
+                    }),
+                },
+            ],
+        });
+
+        return (
+            <Animated.View
+                pointerEvents="none"
+                style={[
+                    styles.totalCelebrationOverlay,
+                    { opacity: celebrationFade }
+                ]}
+            >
+                <Animated.Text style={[styles.sparkle, sparkleStyle(sparkle1, 6, -14)]}>✦</Animated.Text>
+                <Animated.Text style={[styles.sparkle, sparkleStyle(sparkle2, 42, -28)]}>✦</Animated.Text>
+                <Animated.Text style={[styles.sparkle, sparkleStyle(sparkle3, 78, -18)]}>✦</Animated.Text>
+            </Animated.View>
+        );
+    }
+
     return (
 
         <ScrollView
@@ -493,9 +557,26 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
 
             <View style={styles.contentBlock}>
 
-                <Text style={styles.total}>
-                    Total: {total}
-                </Text>
+                <View style={styles.totalRow}>
+                    <View style={styles.totalWrapper}>
+                        <Text style={styles.total}>
+                            Total: {total}
+                        </Text>
+
+                        {isCelebrating(practiceId) && renderCelebrationOverlay()}
+                    </View>
+
+                    {isCelebrating(practiceId) && (
+                        <Animated.Text
+                            style={[
+                                styles.congratsText,
+                                { opacity: celebrationFade }
+                            ]}
+                        >
+                            Target reached, congratulations!!
+                        </Animated.Text>
+                    )}
+                </View>
 
                 <View style={styles.addSection}>
 
@@ -632,7 +713,6 @@ const styles = StyleSheet.create({
 
     total: {
         fontSize: 18,
-        marginBottom: 20
     },
 
     sectionTitle: {
@@ -748,6 +828,41 @@ const styles = StyleSheet.create({
     tableTooltipText: {
         color: "white",
         fontSize: 13,
-    }
+    },
+
+    totalRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 20,
+        flexWrap: "wrap",
+    },
+
+    totalWrapper: {
+        position: "relative",
+        alignSelf: "flex-start",
+    },
+
+    totalCelebrationOverlay: {
+        position: "absolute",
+        top: -4,
+        left: 0,
+        right: -10,
+        bottom: -4,
+        pointerEvents: "none",
+    },
+
+    sparkle: {
+        position: "absolute",
+        fontSize: 16,
+        color: "#a78bfa",
+        fontWeight: "700",
+    },
+
+    congratsText: {
+        fontSize: 12,
+        color: "#7c3aed",
+        fontWeight: "700",
+    },
 
 });

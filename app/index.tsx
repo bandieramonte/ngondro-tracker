@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import * as Progress from "react-native-progress";
 import { practiceImages } from "../constants/practiceImages";
+import { useReachedCelebration } from "../hooks/useReachedCelebration";
 import * as dashboardService from "../services/dashboardService";
 import * as practiceService from "../services/practiceService";
 import * as sessionService from "../services/sessionService";
@@ -32,14 +33,14 @@ export default function Dashboard() {
   const [showQuickAddHint, setShowQuickAddHint] = useState(false);
   const quickAddRefs = useRef<Record<string, View | null>>({});
   const [tooltipPosition, setTooltipPosition] = useState<{ top: number; left: number } | null>(null);
-  const previousReachedRef = useRef<Record<string, boolean>>({});
-  const celebrationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [celebratingPracticeId, setCelebratingPracticeId] = useState<string | null>(null);
-  const sparkle1 = useRef(new Animated.Value(0)).current;
-  const sparkle2 = useRef(new Animated.Value(0)).current;
-  const sparkle3 = useRef(new Animated.Value(0)).current;
-  const celebrationFade = useRef(new Animated.Value(1)).current;
-  const sparkleAnimationsRef = useRef<Animated.CompositeAnimation[]>([]);
+  const {
+    celebrationFade,
+    sparkle1,
+    sparkle2,
+    sparkle3,
+    updateReachedState,
+    isCelebrating,
+  } = useReachedCelebration();
 
   useFocusEffect(
     useCallback(() => {
@@ -48,17 +49,6 @@ export default function Dashboard() {
 
     }, [])
   );
-
-  useEffect(() => {
-    return () => {
-      if (celebrationTimeoutRef.current) {
-        clearTimeout(celebrationTimeoutRef.current);
-      }
-
-      sparkleAnimationsRef.current.forEach(animation => animation.stop());
-      sparkleAnimationsRef.current = [];
-    };
-  }, []);
 
   useEffect(() => {
 
@@ -100,93 +90,14 @@ export default function Dashboard() {
     });
   }
 
-  function isReached(practice: Practice) {
-    return practice.total >= practice.targetCount;
-  }
-
-  function startCelebration(practiceId: string) {
-    if (celebrationTimeoutRef.current) {
-      clearTimeout(celebrationTimeoutRef.current);
-    }
-
-    sparkleAnimationsRef.current.forEach(animation => animation.stop());
-    sparkleAnimationsRef.current = [];
-
-    setCelebratingPracticeId(practiceId);
-
-    celebrationFade.setValue(1);
-    sparkle1.setValue(0);
-    sparkle2.setValue(0);
-    sparkle3.setValue(0);
-
-    const makeSparkle = (value: Animated.Value, delay: number) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(value, {
-            toValue: 1,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-          Animated.timing(value, {
-            toValue: 0,
-            duration: 900,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-
-    const a1 = makeSparkle(sparkle1, 0);
-    const a2 = makeSparkle(sparkle2, 180);
-    const a3 = makeSparkle(sparkle3, 360);
-
-    sparkleAnimationsRef.current = [a1, a2, a3];
-
-    a1.start();
-    a2.start();
-    a3.start();
-
-    celebrationTimeoutRef.current = setTimeout(() => {
-      Animated.timing(celebrationFade, {
-        toValue: 0,
-        duration: 2000,
-        useNativeDriver: true,
-      }).start(() => {
-        sparkleAnimationsRef.current.forEach(animation => animation.stop());
-        sparkleAnimationsRef.current = [];
-        setCelebratingPracticeId(null);
-
-        setTimeout(() => {
-          celebrationFade.setValue(1);
-          sparkle1.setValue(0);
-          sparkle2.setValue(0);
-          sparkle3.setValue(0);
-        }, 0);
-      });
-    }, 3000);
-  }
-
-  function maybeTriggerReachedCelebration(rows: Practice[]) {
-    const nextReachedMap: Record<string, boolean> = {};
-
-    for (const practice of rows) {
-      const reachedNow = isReached(practice);
-      const reachedBefore = previousReachedRef.current[practice.id] ?? false;
-
-      nextReachedMap[practice.id] = reachedNow;
-
-      if (reachedNow && !reachedBefore) {
-        startCelebration(practice.id);
-      }
-    }
-
-    previousReachedRef.current = nextReachedMap;
-  }
-
   function refreshDashboard() {
     const rows = dashboardService.getDashboardPractices();
-    maybeTriggerReachedCelebration(rows);
-    setPractices(rows);
+    updateReachedState(
+      rows.map(practice => ({
+        id: practice.id,
+        reached: practice.total >= practice.targetCount,
+      }))
+    ); setPractices(rows);
     setStreak(dashboardService.getCurrentStreak());
   }
 
@@ -310,7 +221,7 @@ export default function Dashboard() {
         return (
 
           <View key={practice.id} style={styles.card}>
-            {celebratingPracticeId === practice.id && renderCelebrationOverlay()}
+            {isCelebrating(practice.id) && renderCelebrationOverlay()}
             <TouchableOpacity
               onPress={() =>
                 router.push({
@@ -361,7 +272,7 @@ export default function Dashboard() {
                       Target date: {expectedTargetDate ?? "No estimate"}
                     </Text>
 
-                    {expectedTargetDate === "Reached" && celebratingPracticeId === practice.id && (
+                    {expectedTargetDate === "Reached" && isCelebrating(practice.id) && (
                       <Animated.Text
                         style={[
                           styles.congratsText,
