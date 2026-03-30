@@ -1,10 +1,12 @@
 import { randomUUID } from "expo-crypto";
+import * as practiceRepo from "../repositories/practiceRepo";
 import * as sessionRepo from "../repositories/sessionRepo";
 import * as authService from "../services/authService";
 import * as syncService from "../services/syncService";
+import { SyncMetadata } from "../types/sync";
 import { emitDataChanged } from "../utils/events";
 
-function getWriteSyncMetadata() {
+function getWriteSyncMetadata() : SyncMetadata  {
     const userId = authService.getCurrentUserId();
     const now = Date.now();
 
@@ -24,23 +26,53 @@ export type AddedSessionResult = {
 };
 
 export function addSession(practiceId: string, count: number) {
-    const sync = getWriteSyncMetadata();
+    const syncMetadata = getWriteSyncMetadata();
 
-    sessionRepo.insertSession(
-        randomUUID(),
+    const today = new Date();
+
+    const dayString =
+        today.getUTCFullYear() +
+        "-" +
+        String(today.getUTCMonth() + 1).padStart(2, "0") +
+        "-" +
+        String(today.getUTCDate()).padStart(2, "0");
+
+    const existing = sessionRepo.getSessionForDay(
         practiceId,
-        count,
-        Date.now(),
-        0,
-        1,
-        sync.userId,
-        sync.updatedAt,
-        sync.syncStatus,
-        sync.lastSyncedAt
+        dayString
     );
 
+    if (existing) {
+        const newCount = existing.count + count;
+
+        sessionRepo.updateSessionCount(
+            existing.id,
+            newCount,
+            syncMetadata
+        );
+    } else {
+        
+        const deleted = sessionRepo.getDeletedSessionForDay(practiceId, dayString);
+
+        if (deleted) {
+            sessionRepo.reviveSession(
+                deleted.id,
+                count,
+                syncMetadata
+            );
+        } else {
+            sessionRepo.insertSession(
+                randomUUID(),
+                practiceId,
+                count,
+                Date.now(),
+                syncMetadata
+            );    
+        }
+    }
+
     emitDataChanged();
-    void syncService.requestSync(sync.userId);
+    void syncService.requestSync(syncMetadata.userId);
 }
 
 export function getSessionsForPractice(practiceId: string) {
@@ -79,38 +111,57 @@ export function adjustDayTotal(
     date: string,
     newTotal: number
 ) {
-    const rows = sessionRepo.getDailyTotalsWithAdjustments(practiceId);
-    const current = rows.find(r => r.day === date)?.total ?? 0;
+    const syncMetadata = getWriteSyncMetadata();
 
-    const difference = newTotal - current;
+    const existing = sessionRepo.getSessionForDay(practiceId, date);
+    const oldTotal = existing?.count ?? 0;
 
-    if (difference === 0) return;
+    if (oldTotal === newTotal) return;
 
-    const sync = getWriteSyncMetadata();
-    const timestamp = new Date(date + "T00:00:00Z").getTime();
+   // Update session
+    if (existing) {
+        sessionRepo.updateSessionCount(
+            existing.id,
+            newTotal,
+            syncMetadata
+        );
+    } else {
+        if (newTotal > 0) {
+            sessionRepo.insertSession(
+                randomUUID(),
+                practiceId,
+                newTotal,
+                new Date(date + "T00:00:00Z").getTime(),
+                syncMetadata
+            );
+        }
+    }
 
-    sessionRepo.insertSession(
-        randomUUID(),
-        practiceId,
-        difference,
-        timestamp,
-        1,
-        1,
-        sync.userId,
-        sync.updatedAt,
-        sync.syncStatus,
-        sync.lastSyncedAt
-    );
+    // If total becomes zero → reset offset
+    const total = sessionRepo.getPracticeTotal(practiceId).total;
+
+    if (total === 0) {
+        const practice = practiceRepo.getPracticeById(practiceId);
+        const offset = practice?.totalOffset ?? 0;
+
+        if (offset !== 0) {
+            practiceRepo.updatePracticeTotalOffset(
+                practiceId,
+                0,
+                syncMetadata
+            );
+        }
+    }
 
     emitDataChanged();
-    void syncService.requestSync(sync.userId);
+    void syncService.requestSync(syncMetadata.userId);
 }
 
 export function getDailyPracticeDataWithAdjustments(
     practiceId: string,
     days: number
 ) {
-    const rows = sessionRepo.getDailyTotalsWithAdjustments(practiceId);
+    const rows = sessionRepo.getDailyTotals(practiceId);
     const today = new Date();
     const result: { date: string; total: number }[] = [];
 

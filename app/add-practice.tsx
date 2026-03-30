@@ -39,6 +39,7 @@ export default function AddPractice() {
 
             <TextInput
                 placeholder="Practice name"
+                placeholderTextColor="#999"
                 value={name}
                 onChangeText={setName}
                 style={styles.input}
@@ -46,6 +47,7 @@ export default function AddPractice() {
 
             <TextInput
                 placeholder="Target count"
+                placeholderTextColor="#999"
                 value={target}
                 onChangeText={setTarget}
                 keyboardType="numeric"
@@ -54,6 +56,7 @@ export default function AddPractice() {
 
             <TextInput
                 placeholder="Repetitions per sessions"
+                placeholderTextColor="#999"
                 value={defaultAdd}
                 onChangeText={setDefaultAdd}
                 keyboardType="numeric"

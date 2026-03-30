@@ -3,6 +3,4 @@ export type PracticeSession = {
   practiceId: string
   count: number
   createdAt: number
-  isAdjustment: number
-  affectsAnalytics: number
 }

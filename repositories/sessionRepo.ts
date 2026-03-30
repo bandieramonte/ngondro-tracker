@@ -1,15 +1,14 @@
 import { db } from "../database/db";
+import { SyncMetadata, SyncStatus } from "../types/sync";
 
 export type SessionRow = {
     id: string;
     practiceId: string;
     count: number;
     createdAt: number;
-    isAdjustment?: number;
-    affectsAnalytics?: number;
     userId?: string | null;
     updatedAt?: number | null;
-    syncStatus?: "pending" | "synced" | "failed" | null;
+    syncStatus?: SyncStatus;
     lastSyncedAt?: number | null;
 };
 
@@ -22,12 +21,7 @@ export function insertSession(
     practiceId: string,
     count: number,
     createdAt: number,
-    isAdjustment: number = 0,
-    affectsAnalytics: number = 1,
-    userId: string | null = null,
-    updatedAt: number | null = null,
-    syncStatus: "pending" | "synced" | "failed" = "synced",
-    lastSyncedAt: number | null = null
+    syncMetadata: SyncMetadata 
 ) {
     db.runSync(
         `INSERT INTO sessions (
@@ -35,23 +29,19 @@ export function insertSession(
       practiceId,
       count,
       createdAt,
-      isAdjustment,
-      affectsAnalytics,
       userId,
       updatedAt,
       syncStatus,
       lastSyncedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         id,
         practiceId,
         count,
         createdAt,
-        isAdjustment,
-        affectsAnalytics,
-        userId,
-        updatedAt,
-        syncStatus,
-        lastSyncedAt
+        syncMetadata.userId,
+        syncMetadata.updatedAt,
+        syncMetadata.syncStatus,
+        syncMetadata.lastSyncedAt
     );
 }
 
@@ -73,8 +63,6 @@ export function getDirtySessions(userId: string): SessionRow[] {
       practiceId,
       count,
       createdAt,
-      isAdjustment,
-      affectsAnalytics,
       userId,
       updatedAt,
       syncStatus,
@@ -94,8 +82,6 @@ export function getSessionsByPractice(practiceId: string): SessionRow[] {
       practiceId,
       count,
       createdAt,
-      isAdjustment,
-      affectsAnalytics,
       userId,
       updatedAt,
       syncStatus,
@@ -118,8 +104,6 @@ export function getSessionsByPracticeForSync(practiceId: string): SessionRow[] {
       practiceId,
       count,
       createdAt,
-      isAdjustment,
-      affectsAnalytics,
       userId,
       updatedAt,
       syncStatus,
@@ -133,9 +117,19 @@ export function getSessionsByPracticeForSync(practiceId: string): SessionRow[] {
 
 export function getPracticeTotal(practiceId: string): PracticeTotalRow {
     return db.getAllSync(
-        `SELECT MAX(0, COALESCE(SUM(count), 0)) as total
-        FROM sessions
-        WHERE practiceId = ?`,
+        `
+        SELECT
+            MAX(
+                0,
+                COALESCE((
+                    SELECT SUM(count)
+                    FROM sessions
+                    WHERE practiceId = p.id
+                ), 0) + COALESCE(p.totalOffset, 0)
+            ) as total
+        FROM practices p
+        WHERE p.id = ?
+        `,
         practiceId
     )[0] as PracticeTotalRow;
 }
@@ -145,7 +139,7 @@ export function getDailyTotals(practiceId: string) {
         `
     SELECT
       date(createdAt/1000,'unixepoch') as day,
-      SUM(CASE WHEN affectsAnalytics = 1 THEN count ELSE 0 END) as total
+      SUM(count) as total
     FROM sessions
     WHERE practiceId = ?
     GROUP BY day
@@ -159,8 +153,6 @@ export function getSessionsForBackup() {
     SELECT
       s.count,
       s.createdAt,
-      s.isAdjustment,
-      s.affectsAnalytics,
       p.name AS practiceName,
       p.orderIndex
     FROM sessions s
@@ -178,31 +170,10 @@ export function getSessionDays() {
     SELECT
       date(createdAt/1000,'unixepoch') as day
     FROM sessions
-    WHERE COALESCE(affectsAnalytics,1) = 1
     GROUP BY date(createdAt/1000,'unixepoch')
     HAVING COALESCE(SUM(count), 0) > 0
     ORDER BY day DESC
   `) as { day: string }[];
-}
-
-export function getDailyTotalsWithAdjustments(practiceId: string) {
-    return db.getAllSync(
-        `
-    SELECT
-      date(createdAt/1000,'unixepoch') as day,
-      SUM(
-        CASE
-          WHEN isAdjustment = 0 OR affectsAnalytics = 1
-          THEN count
-          ELSE 0
-        END
-      ) as total
-    FROM sessions
-    WHERE practiceId = ?
-    GROUP BY day
-  `,
-        practiceId
-    ) as { day: string; total: number }[];
 }
 
 export function claimAnonymousSessions(userId: string, updatedAt: number) {
@@ -230,8 +201,6 @@ export function upsertSessionFromRemote(row: {
     practice_id: string;
     count: number;
     created_at: string;
-    is_adjustment: boolean;
-    affects_analytics: boolean;
     updated_at: string;
     deleted_at: string | null;
 }) {
@@ -247,20 +216,16 @@ export function upsertSessionFromRemote(row: {
         practiceId,
         count,
         createdAt,
-        isAdjustment,
-        affectsAnalytics,
         userId,
         updatedAt,
         syncStatus,
         lastSyncedAt
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         practiceId = excluded.practiceId,
         count = excluded.count,
         createdAt = excluded.createdAt,
-        isAdjustment = excluded.isAdjustment,
-        affectsAnalytics = excluded.affectsAnalytics,
         userId = excluded.userId,
         updatedAt = excluded.updatedAt,
         syncStatus = 'synced',
@@ -270,10 +235,9 @@ export function upsertSessionFromRemote(row: {
         row.practice_id,
         row.count,
         new Date(row.created_at).getTime(),
-        row.is_adjustment ? 1 : 0,
-        row.affects_analytics ? 1 : 0,
         row.user_id,
         new Date(row.updated_at).getTime(),
+        "synced",
         Date.now()
     );
 }
@@ -303,8 +267,6 @@ export function getAllSessionsForSync(): SessionRow[] {
       practiceId,
       count,
       createdAt,
-      isAdjustment,
-      affectsAnalytics,
       userId,
       updatedAt,
       syncStatus,
@@ -321,4 +283,117 @@ export function resetAllSyncState() {
             syncStatus = 'pending',
             lastSyncedAt = NULL
     `);
+}
+
+export function getSessionForDay(
+    practiceId: string,
+    date: string
+): SessionRow | null {
+    const rows = db.getAllSync(
+        `
+        SELECT
+            id,
+            practiceId,
+            count,
+            createdAt,
+            userId,
+            updatedAt,
+            syncStatus,
+            lastSyncedAt
+        FROM sessions
+        WHERE practiceId = ?
+        AND date(createdAt/1000,'unixepoch') = ?
+        LIMIT 1
+        `,
+        practiceId,
+        date
+    ) as SessionRow[];
+
+    return rows[0] ?? null;
+}
+
+export function updateSessionCount(
+    id: string,
+    count: number,
+    syncMetadata : SyncMetadata
+) {
+    db.runSync(
+        `
+        UPDATE sessions
+        SET count = ?,
+            userId = ?,
+            updatedAt = ?,
+            syncStatus = ?,
+            lastSyncedAt = ?
+        WHERE id = ?
+        `,
+        count,
+        syncMetadata.userId,
+        syncMetadata.updatedAt,
+        syncMetadata.syncStatus,
+        syncMetadata.lastSyncedAt,
+        id
+    );
+}
+
+export function getDeletedSessionForDay(
+    practiceId: string,
+    date: string
+): SessionRow | null {
+    return db.getAllSync(
+        `
+        SELECT *
+        FROM sessions
+        WHERE practiceId = ?
+        AND date(createdAt/1000,'unixepoch') = ?
+        AND deletedAt IS NOT NULL
+        LIMIT 1
+        `,
+        practiceId,
+        date
+    )[0] as SessionRow | null;
+}
+
+export function reviveSession(
+    id: string,
+    count: number,
+    syncMetadata : SyncMetadata
+) {
+    db.runSync(
+        `
+        UPDATE sessions
+        SET 
+          count = ?,
+          deletedAt = NULL,
+          userId = ?,
+          updatedAt = ?,
+          syncStatus = ?,
+          lastSyncedAt = ?
+        WHERE id = ?
+        `,
+        count,
+        syncMetadata.userId,
+        syncMetadata.updatedAt,
+        syncMetadata.syncStatus,
+        syncMetadata.lastSyncedAt,
+        id
+    );
+}
+
+export function softDeleteAllSessions(
+    userId: string | null,
+    updatedAt: number | null
+) {
+    db.runSync(
+        `
+        UPDATE sessions
+        SET deletedAt = ?,
+            userId = ?,
+            updatedAt = ?,
+            syncStatus = 'pending'
+        `,
+        Date.now(),
+        userId,
+        updatedAt
+    );
 }

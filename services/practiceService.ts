@@ -5,9 +5,10 @@ import * as practiceRepo from "../repositories/practiceRepo";
 import * as sessionRepo from "../repositories/sessionRepo";
 import * as authService from "../services/authService";
 import * as syncService from "../services/syncService";
+import { SyncMetadata } from "../types/sync";
 import { emitDataChanged } from "../utils/events";
 
-function getWriteSyncMetadata() {
+function getWriteSyncMetadata() : SyncMetadata {
     const userId = authService.getCurrentUserId();
     const now = Date.now();
 
@@ -26,23 +27,21 @@ export function createPractice(
 ) {
     const orderResult = practiceRepo.getMaxOrderIndex();
     const nextOrder = (orderResult.maxOrder ?? 0) + 1;
-    const sync = getWriteSyncMetadata();
+    const syncMetadata = getWriteSyncMetadata();
 
     practiceRepo.insertPractice(
         randomUUID(),
         name,
         target,
         nextOrder,
+        syncMetadata,
         null,
         defaultAddCount,
-        sync.userId,
-        sync.updatedAt,
-        sync.syncStatus,
-        sync.lastSyncedAt
+        0
     );
 
     emitDataChanged();
-    void syncService.requestSync(sync.userId);
+    void syncService.requestSync(syncMetadata.userId);
 }
 
 export function updatePractice(
@@ -51,36 +50,32 @@ export function updatePractice(
     target: number,
     newTotal: number
 ) {
-    const currentTotalResult = sessionRepo.getPracticeTotal(id);
-    const currentTotal = currentTotalResult.total;
+    const currentTotal = sessionRepo.getPracticeTotal(id).total;
     const difference = newTotal - currentTotal;
-    const sync = getWriteSyncMetadata();
+    const syncMetadata = getWriteSyncMetadata();
 
     practiceRepo.updatePractice(
         id,
         name,
         target,
-        sync.updatedAt,
-        sync.syncStatus
+        syncMetadata
     );
 
-    if (difference !== 0) {
-        sessionRepo.insertSession(
-            randomUUID(),
-            id,
-            difference,
-            Date.now(),
-            1,
-            0,
-            sync.userId,
-            sync.updatedAt,
-            sync.syncStatus,
-            sync.lastSyncedAt
-        );
-    }
+if (difference !== 0) {
+    const practice = practiceRepo.getPracticeById(id);
+
+    const currentOffset = practice?.totalOffset ?? 0;
+    const newOffset = currentOffset + difference;
+
+    practiceRepo.updatePracticeTotalOffset(
+        id,
+        newOffset,
+        syncMetadata
+    );
+}
 
     emitDataChanged();
-    void syncService.requestSync(sync.userId);
+    void syncService.requestSync(syncMetadata.userId);
 }
 
 export function deletePractice(id: string) {
@@ -191,15 +186,14 @@ export function updatePracticeDefaultAddCount(
     id: string,
     defaultAddCount: number
 ) {
-    const sync = getWriteSyncMetadata();
+    const syncMetadata = getWriteSyncMetadata();
 
     practiceRepo.updatePracticeDefaultAddCount(
         id,
         defaultAddCount,
-        sync.updatedAt,
-        sync.syncStatus
+        syncMetadata
     );
 
     emitDataChanged();
-    void syncService.requestSync(sync.userId);
+    void syncService.requestSync(syncMetadata.userId);
 }

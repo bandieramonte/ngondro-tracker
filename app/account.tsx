@@ -9,6 +9,7 @@ import {
     View,
 } from "react-native";
 import * as authService from "../services/authService";
+import { getIsOnline } from "../services/networkService";
 import * as syncService from "../services/syncService";
 import { getSyncLabel } from "../services/syncService";
 import { subscribeAuth, subscribeSync } from "../utils/events";
@@ -55,7 +56,16 @@ export default function AccountScreen() {
         try {
             setSyncing(true);
             await syncService.syncNow(authState.userId);
-            Alert.alert("Sync complete", "Local changes were pushed to the cloud.");
+
+            const state = syncService.getSyncState();
+
+            if (state === "offline") {
+                Alert.alert("Offline", "You are offline. Sync will resume when you're back online.");
+            } else if (state === "success") {
+                Alert.alert("Sync complete", "Local changes were pushed to the cloud.");
+            } else if (state === "error") {
+                Alert.alert("Sync failed", "An error occurred during sync.");
+            }
         } catch (error: any) {
             Alert.alert("Sync failed", error?.message ?? "Unknown error");
         } finally {
@@ -137,10 +147,10 @@ export default function AccountScreen() {
                         style={({ pressed }) => [
                             styles.button,
                             pressed && styles.buttonPressed,
-                            syncing && styles.buttonDisabled,
+                            (syncing || !getIsOnline()) && styles.buttonDisabled,
                         ]}
                         onPress={handleSyncNow}
-                        disabled={syncing}
+                        disabled={syncing || !getIsOnline()}
                     >
                         {syncing ? (
                             <ActivityIndicator />

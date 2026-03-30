@@ -5,4 +5,5 @@ export type Practice = {
   orderIndex: number
   imageKey?: string | null
   defaultAddCount: number
+  totalOffset?: number
 }

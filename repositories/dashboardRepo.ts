@@ -21,8 +21,7 @@ export function getDashboardPracticeRows(): DashboardPracticeRow[] {
     0 as total,
     COALESCE(SUM(
       CASE
-        WHEN (s.isAdjustment = 0 OR s.affectsAnalytics = 1)
-        AND date(s.createdAt/1000,'unixepoch') = date('now')
+        WHEN date(s.createdAt/1000,'unixepoch') = date('now')
         THEN s.count
         ELSE 0
       END

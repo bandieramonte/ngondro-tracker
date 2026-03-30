@@ -14,6 +14,10 @@ export default function Layout() {
     const handledDeepLink = useRef(false);
 
     useEffect(() => {
+        appService.initializeApp();
+    }, []);
+
+    useEffect(() => {
         async function handleInitialUrl() {
             const url = await Linking.getInitialURL();
             if (url) {
@@ -71,7 +75,7 @@ export default function Layout() {
                 {
                     text: "Restore",
                     style: "destructive",
-                    onPress: () => {
+                    onPress: async () => {
                         appService.restoreDefaults();
                         router.replace("/");
                     },

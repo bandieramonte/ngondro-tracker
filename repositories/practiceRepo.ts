@@ -1,4 +1,5 @@
 import { db } from "../database/db";
+import { SyncMetadata, SyncStatus } from "../types/sync";
 
 export type PracticeRow = {
     id: string;
@@ -7,9 +8,10 @@ export type PracticeRow = {
     orderIndex: number;
     imageKey?: string | null;
     defaultAddCount?: number | null;
+    totalOffset?: number;
     userId?: string | null;
     updatedAt?: number | null;
-    syncStatus?: "pending" | "synced" | "failed" | null;
+    syncStatus?: SyncStatus;
     lastSyncedAt?: number | null;
 };
 
@@ -26,6 +28,7 @@ export function getPracticeById(id: string): PracticeRow | null {
       orderIndex,
       imageKey,
       defaultAddCount,
+      totalOffset,
       userId,
       updatedAt,
       syncStatus,
@@ -47,6 +50,7 @@ export function getAllPractices(): PracticeRow[] {
       orderIndex,
       imageKey,
       defaultAddCount,
+      totalOffset,
       userId,
       updatedAt,
       syncStatus,
@@ -61,12 +65,10 @@ export function insertPractice(
     name: string,
     target: number,
     orderIndex: number,
+    syncMetadata: SyncMetadata,
     imageKey?: string | null,
     defaultAddCount: number = 108,
-    userId: string | null = null,
-    updatedAt: number | null = null,
-    syncStatus: "pending" | "synced" | "failed" = "synced",
-    lastSyncedAt: number | null = null
+    totalOffset: number = 0,
 ): void {
     db.runSync(
         `INSERT INTO practices (
@@ -76,21 +78,23 @@ export function insertPractice(
       orderIndex,
       imageKey,
       defaultAddCount,
+      totalOffset,
       userId,
       updatedAt,
       syncStatus,
       lastSyncedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         id,
         name,
         target,
         orderIndex,
         imageKey ?? null,
         defaultAddCount,
-        userId,
-        updatedAt,
-        syncStatus,
-        lastSyncedAt
+        totalOffset,
+        syncMetadata.userId,
+        syncMetadata.updatedAt,
+        syncMetadata.syncStatus,
+        syncMetadata.lastSyncedAt
     );
 }
 
@@ -98,10 +102,9 @@ export function updatePractice(
     id: string,
     name: string,
     target: number,
-    updatedAt: number | null = null,
-    syncStatus: "pending" | "synced" | "failed" | null = null
+    syncMetadata : SyncMetadata
 ): void {
-    if (updatedAt == null && syncStatus == null) {
+    if (syncMetadata.updatedAt == null && syncMetadata.syncStatus == null) {
         db.runSync(
             `UPDATE practices
        SET name = ?, targetCount = ?
@@ -122,8 +125,8 @@ export function updatePractice(
      WHERE id = ?`,
         name,
         target,
-        updatedAt,
-        syncStatus,
+        syncMetadata.updatedAt,
+        syncMetadata.syncStatus,
         id
     );
 }
@@ -131,10 +134,9 @@ export function updatePractice(
 export function updatePracticeDefaultAddCount(
     id: string,
     defaultAddCount: number,
-    updatedAt: number | null = null,
-    syncStatus: "pending" | "synced" | "failed" | null = null
+    syncMetadata: SyncMetadata
 ): void {
-    if (updatedAt == null && syncStatus == null) {
+    if (syncMetadata.updatedAt == null && syncMetadata.syncStatus == null) {
         db.runSync(
             `UPDATE practices
        SET defaultAddCount = ?
@@ -152,8 +154,8 @@ export function updatePracticeDefaultAddCount(
          syncStatus = COALESCE(?, syncStatus)
      WHERE id = ?`,
         defaultAddCount,
-        updatedAt,
-        syncStatus,
+        syncMetadata.updatedAt,
+        syncMetadata.syncStatus,
         id
     );
 }
@@ -162,7 +164,7 @@ export function updatePracticeOrder(
     id: string,
     orderIndex: number,
     updatedAt: number | null = null,
-    syncStatus: "pending" | "synced" | "failed" | null = null
+    syncStatus: SyncStatus
 ): void {
     db.runSync(
         `UPDATE practices
@@ -197,6 +199,7 @@ export function getDirtyPractices(userId: string): PracticeRow[] {
       orderIndex,
       imageKey,
       defaultAddCount,
+      totalOffset,
       userId,
       updatedAt,
       syncStatus,
@@ -255,6 +258,7 @@ export function upsertPracticeFromRemote(row: {
     order_index: number;
     image_key: string | null;
     default_add_count: number;
+    total_offset: number;
     updated_at: string;
     deleted_at: string | null;
 }) {
@@ -272,18 +276,20 @@ export function upsertPracticeFromRemote(row: {
         orderIndex,
         imageKey,
         defaultAddCount,
+        totalOffset,
         userId,
         updatedAt,
         syncStatus,
         lastSyncedAt
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?)
       ON CONFLICT(id) DO UPDATE SET
         name = excluded.name,
         targetCount = excluded.targetCount,
         orderIndex = excluded.orderIndex,
         imageKey = excluded.imageKey,
         defaultAddCount = excluded.defaultAddCount,
+        totalOffset = excluded.totalOffset,
         userId = excluded.userId,
         updatedAt = excluded.updatedAt,
         syncStatus = 'synced',
@@ -295,6 +301,7 @@ export function upsertPracticeFromRemote(row: {
         row.order_index,
         row.image_key,
         row.default_add_count,
+        row.total_offset ?? 0,
         row.user_id,
         new Date(row.updated_at).getTime(),
         Date.now()
@@ -327,4 +334,22 @@ export function resetAllSyncState() {
             syncStatus = 'pending',
             lastSyncedAt = NULL
     `);
+}
+
+export function updatePracticeTotalOffset(
+    id: string,
+    totalOffset: number,
+    syncMetadata: SyncMetadata
+) {
+    db.runSync(
+        `UPDATE practices
+         SET totalOffset = ?,
+             updatedAt = COALESCE(?, updatedAt),
+             syncStatus = COALESCE(?, syncStatus)
+         WHERE id = ?`,
+        totalOffset,
+        syncMetadata.updatedAt,
+        syncMetadata.syncStatus,
+        id
+    );
 }

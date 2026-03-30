@@ -22,7 +22,8 @@ export function initializeDatabase() {
       targetCount INTEGER,
       orderIndex INTEGER,
       imageKey TEXT,
-      defaultAddCount INTEGER
+      defaultAddCount INTEGER,
+      totalOffset INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS sessions (
@@ -30,8 +31,11 @@ export function initializeDatabase() {
       practiceId TEXT,
       count INTEGER,
       createdAt INTEGER,
-      isAdjustment INTEGER,
-      affectsAnalytics INTEGER
+      userId TEXT,
+      updatedAt INTEGER,
+      syncStatus TEXT,
+      lastSyncedAt INTEGER,
+      deletedAt INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS user_profile (
@@ -54,15 +58,15 @@ export function initializeDatabase() {
 
   addColumnIfMissing("practices", "imageKey", "imageKey TEXT");
   addColumnIfMissing("practices", "defaultAddCount", "defaultAddCount INTEGER");
+  addColumnIfMissing("practices", "totalOffset", "totalOffset INTEGER");
   addColumnIfMissing("practices", "userId", "userId TEXT");
   addColumnIfMissing("practices", "updatedAt", "updatedAt INTEGER");
   addColumnIfMissing("practices", "syncStatus", "syncStatus TEXT DEFAULT 'synced'");
   addColumnIfMissing("practices", "lastSyncedAt", "lastSyncedAt INTEGER");
 
-  addColumnIfMissing("sessions", "isAdjustment", "isAdjustment INTEGER DEFAULT 0");
-  addColumnIfMissing("sessions", "affectsAnalytics", "affectsAnalytics INTEGER DEFAULT 1");
   addColumnIfMissing("sessions", "userId", "userId TEXT");
   addColumnIfMissing("sessions", "updatedAt", "updatedAt INTEGER");
   addColumnIfMissing("sessions", "syncStatus", "syncStatus TEXT DEFAULT 'synced'");
   addColumnIfMissing("sessions", "lastSyncedAt", "lastSyncedAt INTEGER");
+  addColumnIfMissing("sessions", "deletedAt", "deletedAt INTEGER");
 }

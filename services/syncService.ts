@@ -3,19 +3,14 @@ import * as deletedRecordRepo from "@/repositories/deletedRecordRepo";
 import * as practiceRepo from "@/repositories/practiceRepo";
 import * as sessionRepo from "@/repositories/sessionRepo";
 import { emitDataChanged, emitSyncChanged } from "@/utils/events";
+import { SyncState } from "../types/sync";
 import { getIsOnline, subscribeOnline } from "./networkService";
-
-export type SyncState =
-    | "idle"
-    | "syncing"
-    | "success"
-    | "error"
-    | "offline";
 
 let syncState: SyncState = "idle";
 let syncInFlight: Promise<void> | null = null;
 let scheduledSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 let scheduledUserId: string | null = null;
+let lastUserId: string | null = null;
 
 function setSyncState(next: SyncState) {
     syncState = next;
@@ -39,7 +34,6 @@ async function pushPendingPractices(userId: string) {
     const rows = practiceRepo.getDirtyPractices(userId);
 
     if (rows.length === 0) return;
-
     const payload = rows.map((row) => ({
         id: row.id,
         user_id: userId,
@@ -48,6 +42,7 @@ async function pushPendingPractices(userId: string) {
         order_index: row.orderIndex,
         image_key: row.imageKey ?? null,
         default_add_count: row.defaultAddCount ?? 108,
+        total_offset: row.totalOffset ?? 0,
         updated_at: new Date(row.updatedAt ?? Date.now()).toISOString(),
         deleted_at: null,
     }));
@@ -78,8 +73,6 @@ async function pushPendingSessions(userId: string) {
         practice_id: row.practiceId,
         count: row.count,
         created_at: new Date(row.createdAt).toISOString(),
-        is_adjustment: !!row.isAdjustment,
-        affects_analytics: !!row.affectsAnalytics,
         updated_at: new Date(row.updatedAt ?? Date.now()).toISOString(),
         deleted_at: null,
     }));
@@ -136,8 +129,6 @@ async function pushPendingDeletions(userId: string) {
 
                     // required NOT NULL fields
                     count: 0,
-                    is_adjustment: false,
-                    affects_analytics: false,
                 };
             }
 
@@ -204,6 +195,7 @@ async function pullPractices(userId: string) {
         order_index,
         image_key,
         default_add_count,
+        total_offset,
         updated_at,
         deleted_at
     `)
@@ -247,8 +239,6 @@ async function pullSessions(userId: string) {
       practice_id,
       count,
       created_at,
-      is_adjustment,
-      affects_analytics,
       updated_at,
       deleted_at
     `)
@@ -292,8 +282,9 @@ export async function syncNow(userId: string | null) {
         return;
     }
 
+    lastUserId = userId;
+    
     if (!getIsOnline()) {
-        console.log("Skipping sync — offline");
         setSyncState("offline");
         return;
     }
@@ -359,9 +350,13 @@ export async function requestSync(userId: string | null) {
 
 export function initializeSyncRetry() {
     subscribeOnline(() => {
-        if (scheduledUserId) {
-            console.log("Back online → retrying sync");
-            void requestSync(scheduledUserId);
+        if (!getIsOnline()) {
+            setSyncState("offline");
+            return;
+        }
+
+        if (lastUserId) {
+            void requestSync(lastUserId);
         }
     });
 }
@@ -384,4 +379,24 @@ export function getSyncLabel(state: SyncState): string {
 export async function resetLocalSyncState() {
     practiceRepo.resetAllSyncState();
     sessionRepo.resetAllSyncState();
+}
+
+export async function wipeRemoteUserData(userId: string) {
+    if (!userId) return;
+
+    const { data: sessionsDeleted, error: sessionError } = await supabase
+        .from("sessions")
+        .delete()
+        .eq("user_id", userId)
+        .select();
+
+    if (sessionError) throw sessionError;
+
+    const { data: practicesDeleted, error: practiceError } = await supabase
+        .from("practices")
+        .delete()
+        .eq("user_id", userId)
+        .select();
+
+    if (practiceError) throw practiceError;
 }

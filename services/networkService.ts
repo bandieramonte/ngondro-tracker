@@ -5,13 +5,9 @@ let listeners: (() => void)[] = [];
 
 export function initializeNetworkListener() {
     NetInfo.addEventListener((state) => {
-        const wasOffline = !isOnline;
         isOnline = !!state.isConnected;
 
-        if (isOnline && wasOffline) {
-            // notify listeners when coming back online
-            listeners.forEach((l) => l());
-        }
+        listeners.forEach((l) => l());
     });
 }
 

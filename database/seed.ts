@@ -1,21 +1,35 @@
+import { SyncMetadata } from "@/types/sync"
 import { randomUUID } from "expo-crypto"
 import { DEFAULT_PRACTICES } from "../constants/defaultPractices"
-import { db } from "./db"
+import * as practiceRepo from "../repositories/practiceRepo"
+import * as authService from "../services/authService"
 
 export function seedPractices() {
-  const result = db.getAllSync("SELECT * FROM practices")
 
-  if (result.length === 0) {
-    DEFAULT_PRACTICES.forEach(p => {
-      db.runSync(
-        "INSERT INTO practices (id, name, targetCount, orderIndex, imageKey, defaultAddCount) VALUES (?, ?, ?, ?, ?, ?)",
-        randomUUID(),
-        p.name,
-        p.targetCount,
-        p.orderIndex,
-        p.imageKey,
-        p.defaultAddCount ?? 108
-      )
-    })
+  const existing = practiceRepo.getAllPractices()
+
+  if (existing.length > 0) return
+
+  const userId = authService.getCurrentUserId()
+  const now = Date.now()
+
+  const syncMetadata: SyncMetadata = {
+    userId,
+    updatedAt: now,
+    syncStatus: userId ? "pending" : "synced",
+    lastSyncedAt: userId ? null : now,
   }
+
+  DEFAULT_PRACTICES.forEach(p => {
+    practiceRepo.insertPractice(
+      randomUUID(),
+      p.name,
+      p.targetCount,
+      p.orderIndex,
+      syncMetadata,
+      p.imageKey,
+      p.defaultAddCount ?? 108,
+      p.totalOffset ?? 0
+    )
+  })
 }
