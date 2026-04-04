@@ -19,6 +19,7 @@ type Props = {
     isAuthenticated: boolean;
     firstName: string | null;
     onSignOut: () => void;
+    hideAccountIcon?: boolean;
 };
 
 export default function HeaderMenu({
@@ -27,6 +28,7 @@ export default function HeaderMenu({
     onRestoreDefaults,
     isAuthenticated,
     onSignOut,
+    hideAccountIcon,
 }: Props) {
     const router = useRouter();
     const [moreOpen, setMoreOpen] = useState(false);
@@ -34,23 +36,26 @@ export default function HeaderMenu({
 
     return (
         <View style={styles.container}>
-            <Pressable
-                onPress={() => {
-                    if (isAuthenticated) {
-                        router.push("/account");
-                    } else {
-                        setAccountOpen(true);
-                    }
-                }}
-                hitSlop={10}
-                style={({ pressed }) => [
-                    styles.iconButton,
-                    pressed && { opacity: 0.5 }
-                ]}
-            >
-                <MaterialIcons name="account-circle" size={24} />
-            </Pressable>
-
+            {!hideAccountIcon ? (
+                <Pressable
+                    onPress={() => {
+                        if (isAuthenticated) {
+                            router.push("/account");
+                        } else {
+                            setAccountOpen(true);
+                        }
+                    }}
+                    hitSlop={10}
+                    style={({ pressed }) => [
+                        styles.iconButton,
+                        pressed && { opacity: 0.5 }
+                    ]}
+                >
+                    <MaterialIcons name="account-circle" size={24} />
+                </Pressable>
+            ) : (
+                <View style={{ width: 32 }} />   // preserve spacing
+            )}
             <Pressable
                 onPress={() => setMoreOpen(true)}
                 hitSlop={10}

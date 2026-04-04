@@ -3,9 +3,10 @@ import HeaderTitle from "@/components/HeaderTitle";
 import { supabase } from "@/lib/supabase";
 import { exportBackup, importBackup } from "@/utils/backup";
 import { subscribeAuth } from "@/utils/events";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Linking } from "react-native";
+import { Alert, Linking, Pressable, View } from "react-native";
 import * as appService from "../services/appService";
 import * as authService from "../services/authService";
 
@@ -94,14 +95,30 @@ export default function Layout() {
     }
 
     return (
+        // _layout.tsx
         <Stack
             screenOptions={{
+                headerTitleAlign: "center",
+
+                headerLeft: ({ canGoBack, tintColor }) => (
+                    <View style={{ width: 44, alignItems: "center", justifyContent: "center" }}>
+                        {canGoBack ? (
+                            <Pressable onPress={() => router.back()} hitSlop={10}>
+                                <MaterialIcons name="arrow-back" size={24} color={tintColor ?? "#333"} />
+                            </Pressable>
+                        ) : (
+                            <View style={{ width: 24, height: 24 }} />
+                        )}
+                    </View>
+                ),
+
                 headerTitle: () => (
                     <HeaderTitle
                         isAuthenticated={authState.isAuthenticated}
                         firstName={authState.firstName}
                     />
                 ),
+
                 headerRight: () => (
                     <HeaderMenu
                         onExport={exportBackup}

@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from "react-native";
 
 type Props = {
-    firstName: string | null;
-    isAuthenticated: boolean;
+    firstName?: string | null;
+    isAuthenticated?: boolean;
 };
 
 export default function HeaderTitle({ firstName, isAuthenticated }: Props) {
@@ -10,11 +10,13 @@ export default function HeaderTitle({ firstName, isAuthenticated }: Props) {
         <View style={styles.container}>
             <Text style={styles.title}>Ngöndro Tracker</Text>
 
-            {isAuthenticated && (
-                <Text style={styles.subtitle}>
-                    {firstName ? `Hi, ${firstName}` : "Hi"}
-                </Text>
-            )}
+            <Text style={styles.subtitle}>
+                {isAuthenticated
+                    ? firstName
+                        ? `Hi, ${firstName}`
+                        : "Hi"
+                    : " "}
+            </Text>
         </View>
     );
 }
@@ -23,16 +25,19 @@ const styles = StyleSheet.create({
     container: {
         alignItems: "center",
         justifyContent: "center",
+        minWidth: 200,
+        height: 40,   // 👈 locks header height
     },
 
     title: {
         fontSize: 17,
         fontWeight: "700",
+        lineHeight: 20,
     },
 
     subtitle: {
         fontSize: 12,
         color: "#666",
-        marginTop: 1,
+        lineHeight: 14,
     },
 });

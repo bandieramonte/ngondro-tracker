@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import PagerView from "react-native-pager-view";
 import * as practiceService from "../../services/practiceService";
@@ -13,14 +13,8 @@ export default function PracticePager() {
     const pageCount = practices.length;
     const initialIndex = practices.findIndex(p => p.id === id);
     const initialPage = initialIndex + 1;
-    const [loaded, setLoaded] = useState<Set<number>>(
-        new Set([
-            initialPage,
-            initialPage - 1,
-            initialPage + 1,
-            1,
-            practices.length
-        ])
+    const [loaded, setLoaded] = useState(
+        new Set([initialPage])
     );
     const [currentIndex, setCurrentIndex] = useState(initialPage);
 
@@ -55,6 +49,23 @@ export default function PracticePager() {
             </View>
         );
     }
+
+    useEffect(() => {
+        const id = setTimeout(() => {
+            setLoaded(prev => {
+                const next = new Set(prev);
+
+                next.add(initialPage - 1);
+                next.add(initialPage + 1);
+                next.add(1);
+                next.add(practices.length);
+
+                return next;
+            });
+        }, 0);
+
+        return () => clearTimeout(id);
+    }, []);
 
     return (
         <PagerView

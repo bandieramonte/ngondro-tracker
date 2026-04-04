@@ -1,4 +1,5 @@
-import { router } from "expo-router";
+import HeaderMenu from "@/components/HeaderMenu";
+import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
@@ -107,96 +108,113 @@ export default function AccountScreen() {
     }
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Account</Text>
+        <>
+            <Stack.Screen
+                options={{
+                    headerRight: () => (
+                        <HeaderMenu
+                            hideAccountIcon
+                            onExport={() => { }}
+                            onImport={() => { }}
+                            onRestoreDefaults={() => { }}
+                            isAuthenticated={authState.isAuthenticated}
+                            firstName={authState.firstName}
+                            onSignOut={() => { }}
+                        />
+                    ),
+                }}
+            />
 
-            <View style={styles.card}>
-                <Text style={styles.label}>Status</Text>
-                <Text style={styles.value}>
-                    {authState.isAuthenticated ? "Signed in" : "Signed out"}
-                </Text>
+            <View style={styles.container}>
+                <Text style={styles.title}>Account</Text>
 
-                <Text style={styles.label}>First name</Text>
-                <Text style={styles.value}>{authState.firstName ?? "—"}</Text>
-
-                <Text style={styles.label}>Email</Text>
-                <Text style={styles.value}>{authState.email ?? "—"}</Text>
-
-                <Text style={styles.label}>Sync status</Text>
-                <View style={styles.syncContainer}>
-                    <Text
-                        style={[
-                            styles.syncLabel,
-                            syncState === "error" && { color: "red" },
-                            syncState === "offline" && { color: "orange" },
-                            syncState === "success" && { color: "green" },
-                        ]}
-                    >
-                        {getSyncLabel(syncState)}
+                <View style={styles.card}>
+                    <Text style={styles.label}>Status</Text>
+                    <Text style={styles.value}>
+                        {authState.isAuthenticated ? "Signed in" : "Signed out"}
                     </Text>
 
-                    {syncState === "syncing" && (
-                        <ActivityIndicator size="small" />
-                    )}
-                </View>
-            </View>
+                    <Text style={styles.label}>First name</Text>
+                    <Text style={styles.value}>{authState.firstName ?? "—"}</Text>
 
-            {authState.isAuthenticated && (
-                <>
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.button,
-                            pressed && styles.buttonPressed,
-                            (syncing || !getIsOnline()) && styles.buttonDisabled,
-                        ]}
-                        onPress={handleSyncNow}
-                        disabled={syncing || !getIsOnline()}
-                    >
-                        {syncing ? (
-                            <ActivityIndicator />
-                        ) : (
-                            <Text style={styles.buttonText}>Sync Now</Text>
+                    <Text style={styles.label}>Email</Text>
+                    <Text style={styles.value}>{authState.email ?? "—"}</Text>
+
+                    <Text style={styles.label}>Sync status</Text>
+                    <View style={styles.syncContainer}>
+                        <Text
+                            style={[
+                                styles.syncLabel,
+                                syncState === "error" && { color: "red" },
+                                syncState === "offline" && { color: "orange" },
+                                syncState === "success" && { color: "green" },
+                            ]}
+                        >
+                            {getSyncLabel(syncState)}
+                        </Text>
+
+                        {syncState === "syncing" && (
+                            <ActivityIndicator size="small" />
                         )}
-                    </Pressable>
-
-                    <Pressable
-                        style={({ pressed }) => [
-                            styles.button,
-                            styles.secondaryButton,
-                            pressed && styles.buttonPressed,
-                        ]}
-                        onPress={handleSignOut}
-                    >
-                        <Text style={styles.buttonText}>Sign Out</Text>
-                    </Pressable>
-
-                    <Pressable
-                        onPress={handleDeleteAccount}
-                        disabled={deleting}
-                        style={({ pressed }) => [
-                            styles.deleteButton,
-                            pressed && { opacity: 0.7 },
-                            deleting && { opacity: 0.5 }
-                        ]}
-                    >
-                        {deleting ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <Text style={styles.deleteButtonText}>
-                                Delete Account
-                            </Text>
-                        )}
-                    </Pressable>
-                </>
-            )}
-            {deletedMessage && (
-                <View style={styles.deletedToast}>
-                    <Text style={styles.deletedToastText}>
-                        Account deleted successfully
-                    </Text>
+                    </View>
                 </View>
-            )}
-        </View>
+
+                {authState.isAuthenticated && (
+                    <>
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.button,
+                                pressed && styles.buttonPressed,
+                                (syncing || !getIsOnline()) && styles.buttonDisabled,
+                            ]}
+                            onPress={handleSyncNow}
+                            disabled={syncing || !getIsOnline()}
+                        >
+                            {syncing ? (
+                                <ActivityIndicator />
+                            ) : (
+                                <Text style={styles.buttonText}>Sync Now</Text>
+                            )}
+                        </Pressable>
+
+                        <Pressable
+                            style={({ pressed }) => [
+                                styles.button,
+                                styles.secondaryButton,
+                                pressed && styles.buttonPressed,
+                            ]}
+                            onPress={handleSignOut}
+                        >
+                            <Text style={styles.buttonText}>Sign Out</Text>
+                        </Pressable>
+
+                        <Pressable
+                            onPress={handleDeleteAccount}
+                            disabled={deleting}
+                            style={({ pressed }) => [
+                                styles.deleteButton,
+                                pressed && { opacity: 0.7 },
+                                deleting && { opacity: 0.5 }
+                            ]}
+                        >
+                            {deleting ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <Text style={styles.deleteButtonText}>
+                                    Delete Account
+                                </Text>
+                            )}
+                        </Pressable>
+                    </>
+                )}
+                {deletedMessage && (
+                    <View style={styles.deletedToast}>
+                        <Text style={styles.deletedToastText}>
+                            Account deleted successfully
+                        </Text>
+                    </View>
+                )}
+            </View></>
     );
 }
 
