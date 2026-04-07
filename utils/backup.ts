@@ -1,4 +1,6 @@
+import * as authService from "@/services/authService";
 import { getBackupData, restoreBackupData } from "@/services/backupService";
+import * as syncService from "@/services/syncService";
 import { emitDataChanged } from "@/utils/events";
 import * as DocumentPicker from "expo-document-picker";
 import { File, Paths } from "expo-file-system";
@@ -40,7 +42,17 @@ export async function importBackup(onComplete?: () => void) {
 
         try {
 
+            const userId = authService.getCurrentUserId();
+
+            if (userId) {
+                await syncService.wipeRemoteUserData(userId);
+            }
+
             await restoreBackupData(data);
+
+            if (userId) {
+                await syncService.syncNow(userId);
+            }
 
             if (onComplete) {
                 onComplete();
