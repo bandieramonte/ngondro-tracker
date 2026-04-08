@@ -79,6 +79,7 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
         isCelebrating,
     } = useReachedCelebration();
 
+    const [infoOpen, setInfoOpen] = useState(false);
     const calendarEndDate = useMemo(() => {
         return (
             practiceService.getExpectedTargetDate(
@@ -368,12 +369,24 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
                 <View style={styles.contentBlock}>
 
                     <View style={styles.totalRow}>
+
                         <View style={styles.totalWrapper}>
                             <Text style={styles.total}>
                                 {formatNumber(total) + ' ' + (!!targetCount ? '/ ' + formatNumber(targetCount) : '')}
                             </Text>
-
                         </View>
+
+                        <Pressable
+                            onPress={() => setInfoOpen(true)}
+                            style={styles.infoIcon}
+                        >
+                            <MaterialIcons
+                                name="info-outline"
+                                size={20}
+                                color="#666"
+                            />
+                        </Pressable>
+
                     </View>
 
                     <View style={styles.quickAddRow}>
@@ -526,6 +539,51 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
                     );
                 }}
             />
+
+            <Modal
+                visible={infoOpen}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setInfoOpen(false)}
+            >
+                <Pressable
+                    style={styles.infoOverlay}
+                    onPress={() => setInfoOpen(false)}
+                >
+                    <Pressable
+                        style={styles.infoModal}
+                        onPress={() => { }}
+                    >
+                        <Text style={styles.infoTitle}>
+                            Editing Practice Data
+                        </Text>
+
+                        <Text style={styles.infoText}>
+                            You can edit the daily repetition count and the target date.
+                        </Text>
+
+                        <Text style={styles.infoText}>
+                            Changing one will automatically adjust the other,
+                            and the calendar below will update accordingly.
+                        </Text>
+
+                        <Text style={styles.infoText}>
+                            You can also modify any daily count in the calendar
+                            for today or any past day.
+                        </Text>
+
+                        <Pressable
+                            style={styles.infoButton}
+                            onPress={() => setInfoOpen(false)}
+                        >
+                            <Text style={styles.infoButtonText}>
+                                OK
+                            </Text>
+                        </Pressable>
+
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </ScrollView>
     );
 }
@@ -674,8 +732,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         gap: 8,
-        marginBottom: 6,
         flexWrap: "wrap",
+        justifyContent: "space-between"
     },
 
     totalWrapper: {
@@ -764,5 +822,52 @@ const styles = StyleSheet.create({
         alignItems: "center",
         gap: 8,
         position: "relative"
+    },
+
+    infoIcon: {
+        marginLeft: 8,
+        padding: 3
+    },
+
+    infoOverlay: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.35)",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20
+    },
+
+    infoModal: {
+        width: "100%",
+        maxWidth: 360,
+        backgroundColor: "white",
+        borderRadius: 12,
+        padding: 20
+    },
+
+    infoTitle: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginBottom: 12
+    },
+
+    infoText: {
+        fontSize: 14,
+        color: "#333",
+        marginBottom: 10,
+        lineHeight: 20
+    },
+
+    infoButton: {
+        marginTop: 10,
+        alignSelf: "flex-end",
+        paddingVertical: 8,
+        paddingHorizontal: 16
+    },
+
+    infoButtonText: {
+        fontSize: 15,
+        fontWeight: "600",
+        color: "#2563eb"
     },
 });

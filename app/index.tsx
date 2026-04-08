@@ -1,8 +1,9 @@
 import { subscribeData } from "@/utils/events";
+import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as Progress from "react-native-progress";
 import CelebrationOverlay from "../components/CelebrationOverlay";
 import QuickAddEditor from "../components/QuickAddEditor";
@@ -45,6 +46,7 @@ export default function Dashboard() {
     isCelebrating,
   } = useReachedCelebration();
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -89,7 +91,7 @@ export default function Dashboard() {
       setTimeout(() => {
         setShowQuickAddHint(false);
         setTooltipPosition(null);
-      }, 4000);
+      }, 5000);
     });
   }
 
@@ -137,9 +139,21 @@ export default function Dashboard() {
 
     <ScrollView style={styles.container}>
 
-      <Text style={{ marginBottom: 20, fontWeight: "bold", fontStyle: "italic" }}>
-        Streak: {streak} {streak === 1 ? "day" : "days"}
-      </Text>
+      <View style={styles.streakRow}>
+        <Text style={styles.streakText}>
+          Streak: {streak} {streak === 1 ? "day" : "days"}
+        </Text>
+
+        <Pressable
+          onPress={() => setInfoOpen(true)}
+        >
+          <MaterialIcons
+            name="info-outline"
+            size={20}
+            color="#666"
+          />
+        </Pressable>
+      </View>
 
       {practices.map((practice) => {
 
@@ -296,11 +310,57 @@ export default function Dashboard() {
             ]}
           >
             <Text style={styles.anchoredTooltipText}>
-              Tip: Long press this button to change the default amount.
+              Tip: Long press this button to change the expected amount of daily repetitions.
             </Text>
           </View>
         </Pressable>
       )}
+
+      <Modal
+        visible={infoOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setInfoOpen(false)}
+      >
+        <Pressable
+          style={styles.infoOverlay}
+          onPress={() => setInfoOpen(false)}
+        >
+          <Pressable
+            style={styles.infoModal}
+            onPress={() => { }}
+          >
+            <Text style={styles.infoTitle}>
+              Dashboard Info
+            </Text>
+
+            <Text style={styles.infoText}>
+              Your streak shows how many consecutive days
+              you practiced at least once.
+            </Text>
+
+            <Text style={styles.infoText}>
+              Adding sessions for a day will extend
+              your streak.
+            </Text>
+
+            <Text style={styles.infoText}>
+              Tip: Long press the quick add button to change
+              the daily repetition count.
+            </Text>
+
+            <Pressable
+              style={styles.infoButton}
+              onPress={() => setInfoOpen(false)}
+            >
+              <Text style={styles.infoButtonText}>
+                OK
+              </Text>
+            </Pressable>
+
+          </Pressable>
+        </Pressable>
+      </Modal>
 
     </ScrollView>
 
@@ -311,7 +371,7 @@ const styles = StyleSheet.create({
 
   container: {
     padding: 20,
-    marginTop: 12,
+    marginTop: 5,
     marginBottom: 10,
   },
 
@@ -488,6 +548,60 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#a78bfa",
     fontWeight: "700",
+  },
+
+  streakRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 20,
+  },
+
+  streakText: {
+    fontWeight: "bold",
+    fontStyle: "italic"
+  },
+
+  infoOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20
+  },
+
+  infoModal: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: "white",
+    borderRadius: 12,
+    padding: 20
+  },
+
+  infoTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 12
+  },
+
+  infoText: {
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 10,
+    lineHeight: 20
+  },
+
+  infoButton: {
+    marginTop: 10,
+    alignSelf: "flex-end",
+    paddingVertical: 8,
+    paddingHorizontal: 16
+  },
+
+  infoButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#2563eb"
   },
 
 });
