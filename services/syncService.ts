@@ -9,7 +9,7 @@ import { getIsOnline, subscribeOnline } from "./networkService";
 let syncState: SyncState = "idle";
 let syncInFlight: Promise<void> | null = null;
 let scheduledSyncTimeout: ReturnType<typeof setTimeout> | null = null;
-let scheduledUserId: string | null = null;
+let pendingSyncUserId: string | null = null;
 let lastUserId: string | null = null;
 
 function setSyncState(next: SyncState) {
@@ -305,9 +305,9 @@ export async function syncNow(userId: string | null) {
 
         setSyncState("error");
 
-        // schedule retry
         if (userId) {
-            scheduledUserId = userId;
+            pendingSyncUserId = userId;
+            runQueuedSync();
         }
 
         throw error;
@@ -317,35 +317,48 @@ export async function syncNow(userId: string | null) {
 }
 
 export async function requestSync(userId: string | null) {
+
     if (!userId) return;
 
-    scheduledUserId = userId;
+    pendingSyncUserId = userId;
 
     if (scheduledSyncTimeout) {
         clearTimeout(scheduledSyncTimeout);
     }
 
     scheduledSyncTimeout = setTimeout(() => {
-        const nextUserId = scheduledUserId;
+
         scheduledSyncTimeout = null;
-        scheduledUserId = null;
 
-        if (!nextUserId) return;
+        runQueuedSync();
 
-        if (syncInFlight) {
-            // queue another sync after current finishes
-            scheduledUserId = userId;
-            return;
+    }, 2000);
+}
+
+async function runQueuedSync() {
+
+    if (syncInFlight) return;
+
+    if (!pendingSyncUserId) return;
+
+    const userId = pendingSyncUserId;
+    pendingSyncUserId = null;
+
+    syncInFlight = (async () => {
+
+        try {
+            await syncNow(userId);
+        } finally {
+
+            syncInFlight = null;
+
+            if (pendingSyncUserId) {
+                runQueuedSync();
+            }
+
         }
 
-        syncInFlight = (async () => {
-            try {
-                await syncNow(nextUserId);
-            } finally {
-                syncInFlight = null;
-            }
-        })();
-    }, 2000);
+    })();
 }
 
 export function initializeSyncRetry() {
