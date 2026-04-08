@@ -7,8 +7,10 @@ import {
     Pressable,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View,
 } from "react-native";
+import PrivacyModal from "../components/PrivacyModal";
 import * as authService from "../services/authService";
 import { getIsOnline } from "../services/networkService";
 import * as syncService from "../services/syncService";
@@ -21,6 +23,7 @@ export default function AccountScreen() {
     const [syncing, setSyncing] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [deletedMessage, setDeletedMessage] = useState(false);
+    const [privacyVisible, setPrivacyVisible] = useState(false);
 
     useEffect(() => {
         const unsubscribeAuth = subscribeAuth(() => {
@@ -188,6 +191,15 @@ export default function AccountScreen() {
                             <Text style={styles.buttonText}>Sign Out</Text>
                         </Pressable>
 
+                        <TouchableOpacity
+                            onPress={() => setPrivacyVisible(true)}
+                            style={[styles.button, styles.secondaryButton]}
+                        >
+                            <Text style={styles.buttonText}>
+                                Privacy & Data
+                            </Text>
+                        </TouchableOpacity>
+
                         <Pressable
                             onPress={handleDeleteAccount}
                             disabled={deleting}
@@ -214,6 +226,12 @@ export default function AccountScreen() {
                         </Text>
                     </View>
                 )}
+
+                <PrivacyModal
+                    visible={privacyVisible}
+                    onClose={() => setPrivacyVisible(false)}
+                />
+
             </View></>
     );
 }
@@ -296,6 +314,7 @@ const styles = StyleSheet.create({
         color: "white",
         textAlign: "center",
         fontWeight: "600",
+        fontSize: 16,
     },
     deletedToast: {
         position: "absolute",
