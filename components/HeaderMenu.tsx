@@ -1,8 +1,10 @@
+import * as appService from "@/services/appService";
 import * as practiceService from "@/services/practiceService";
+import { exportBackup, importBackup } from "@/utils/backup";
 import { MAX_PRACTICE_COUNT } from "@/utils/numberUtils";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
     Alert,
     Modal,
@@ -14,9 +16,6 @@ import {
 } from "react-native";
 
 type Props = {
-    onExport: () => void;
-    onImport: () => void;
-    onRestoreDefaults: () => void;
     isAuthenticated: boolean;
     firstName: string | null;
     onSignOut: () => void;
@@ -24,9 +23,6 @@ type Props = {
 };
 
 export default function HeaderMenu({
-    onExport,
-    onImport,
-    onRestoreDefaults,
     isAuthenticated,
     onSignOut,
     hideAccountIcon,
@@ -34,6 +30,30 @@ export default function HeaderMenu({
     const router = useRouter();
     const [moreOpen, setMoreOpen] = useState(false);
     const [accountOpen, setAccountOpen] = useState(false);
+    const moreButtonRef = useRef<View | null>(null);
+    const [menuAnchor, setMenuAnchor] = useState<{
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+    } | null>(null);
+
+    function handleRestoreDefaults() {
+        Alert.alert(
+            "Restore Defaults?",
+            "This will remove all your practices, sessions, and local data.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Restore",
+                    style: "destructive",
+                    onPress: () => {
+                        appService.restoreDefaults();
+                    }
+                }
+            ]
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -58,7 +78,35 @@ export default function HeaderMenu({
                 <View style={{ width: 32 }} />
             )}
             <Pressable
-                onPress={() => setMoreOpen(true)}
+                ref={moreButtonRef}
+                onPress={() => {
+                    const target = moreButtonRef.current;
+
+                    if (!target) {
+                        setMoreOpen(true);
+                        return;
+                    }
+
+                    (target as any).measure(
+                        (
+                            _x: number,
+                            _y: number,
+                            width: number,
+                            height: number,
+                            pageX: number,
+                            pageY: number
+                        ) => {
+                            setMenuAnchor({
+                                x: pageX,
+                                y: pageY,
+                                width,
+                                height,
+                            });
+
+                            setMoreOpen(true);
+                        }
+                    );
+                }}
                 hitSlop={10}
                 style={styles.iconButton}
             >
@@ -137,7 +185,16 @@ export default function HeaderMenu({
                     activeOpacity={1}
                     onPress={() => setMoreOpen(false)}
                 >
-                    <View style={styles.menu}>
+                    <View
+                        style={[
+                            styles.menu,
+                            menuAnchor && {
+                                position: "absolute",
+                                top: menuAnchor.y + menuAnchor.height + 6,
+                                right: 10
+                            }
+                        ]}
+                    >
                         <Pressable
                             style={styles.item}
                             onPress={() => {
@@ -165,7 +222,7 @@ export default function HeaderMenu({
                             style={styles.item}
                             onPress={() => {
                                 setMoreOpen(false);
-                                onExport();
+                                exportBackup();
                             }}
                         >
                             <Text>Export Backup</Text>
@@ -175,7 +232,7 @@ export default function HeaderMenu({
                             style={styles.item}
                             onPress={() => {
                                 setMoreOpen(false);
-                                onImport();
+                                importBackup();
                             }}
                         >
                             <Text>Import Backup</Text>
@@ -185,10 +242,20 @@ export default function HeaderMenu({
                             style={styles.item}
                             onPress={() => {
                                 setMoreOpen(false);
-                                onRestoreDefaults();
+                                handleRestoreDefaults();
                             }}
                         >
                             <Text style={styles.destructiveText}>Restore Defaults</Text>
+                        </Pressable>
+
+                        <Pressable
+                            style={styles.item}
+                            onPress={() => {
+                                setMoreOpen(false);
+                                router.navigate("/about");
+                            }}
+                        >
+                            <Text>About</Text>
                         </Pressable>
                     </View>
                 </TouchableOpacity>

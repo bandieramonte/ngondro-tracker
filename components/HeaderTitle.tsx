@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { router } from "expo-router";
+import { Pressable, StyleSheet, Text } from "react-native";
 
 type Props = {
     firstName?: string | null;
@@ -7,7 +8,15 @@ type Props = {
 
 export default function HeaderTitle({ firstName, isAuthenticated }: Props) {
     return (
-        <View style={styles.container}>
+        <Pressable
+            onPress={() => {
+                if (router.canGoBack()) {
+                    router.dismissAll();
+                }
+                router.navigate("/");
+            }}
+            style={styles.container}
+        >
             <Text style={styles.title}>Ngöndro Tracker</Text>
 
             <Text style={styles.subtitle}>
@@ -17,7 +26,7 @@ export default function HeaderTitle({ firstName, isAuthenticated }: Props) {
                         : "Hi"
                     : " "}
             </Text>
-        </View>
+        </Pressable>
     );
 }
 

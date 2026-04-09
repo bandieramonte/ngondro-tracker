@@ -1,7 +1,6 @@
 import HeaderMenu from "@/components/HeaderMenu";
 import HeaderTitle from "@/components/HeaderTitle";
 import { supabase } from "@/lib/supabase";
-import { exportBackup, importBackup } from "@/utils/backup";
 import { subscribeAuth } from "@/utils/events";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
@@ -121,9 +120,6 @@ export default function Layout() {
 
                 headerRight: () => (
                     <HeaderMenu
-                        onExport={exportBackup}
-                        onImport={importBackup}
-                        onRestoreDefaults={handleRestoreDefaults}
                         isAuthenticated={authState.isAuthenticated}
                         firstName={authState.firstName}
                         onSignOut={handleSignOut}

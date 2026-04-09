@@ -117,9 +117,6 @@ export default function AccountScreen() {
                     headerRight: () => (
                         <HeaderMenu
                             hideAccountIcon
-                            onExport={() => { }}
-                            onImport={() => { }}
-                            onRestoreDefaults={() => { }}
                             isAuthenticated={authState.isAuthenticated}
                             firstName={authState.firstName}
                             onSignOut={() => { }}
