@@ -4,28 +4,25 @@ import { StyleSheet, Text, View } from "react-native";
 export function PrivacyContent() {
   return (
     <View style={styles.container}>
-
       <Text style={styles.heading}>
         Privacy & Data Protection (GDPR)
       </Text>
 
       <Text style={styles.text}>
-        This application respects your privacy and is committed to protecting your personal data.
+        Ngöndro Tracker respects your privacy and is committed to protecting your personal data.
       </Text>
-
 
       <Text style={styles.heading}>
         Data Controller
       </Text>
 
       <Text style={styles.text}>
-        Ngöndro Tracker is operated by the developer of this application.
+        Ngöndro Tracker is operated by an independent developer.
         {"\n\n"}
         Contact:
         {"\n"}
         Email: gian@bandieramonte.com
       </Text>
-
 
       <Text style={styles.heading}>
         Data We Collect
@@ -35,12 +32,19 @@ export function PrivacyContent() {
         When you create an account, we collect:
         {"\n\n"}
         • Email address{"\n"}
-        • Authentication credentials (managed securely by Supabase){"\n"}
+        • Authentication credentials (handled securely by Supabase Authentication){"\n"}
         • Practice data (practices and sessions)
         {"\n\n"}
         If you use the app without an account, your data remains stored locally on your device only.
       </Text>
 
+      <Text style={styles.heading}>
+        Offline Use
+      </Text>
+
+      <Text style={styles.text}>
+        You may use this app without creating an account. When used without an account, all data remains stored locally on your device and is not transmitted to any server.
+      </Text>
 
       <Text style={styles.heading}>
         How We Use Your Data
@@ -57,9 +61,9 @@ export function PrivacyContent() {
         {"\n\n"}
         • Sell your data{"\n"}
         • Use your data for advertising{"\n"}
+        • Use analytics or tracking technologies{"\n"}
         • Share your data with third parties except infrastructure providers
       </Text>
-
 
       <Text style={styles.heading}>
         Data Storage
@@ -74,19 +78,19 @@ export function PrivacyContent() {
         Supabase uses industry-standard encryption and security practices.
       </Text>
 
-
       <Text style={styles.heading}>
         Data Sharing
       </Text>
 
       <Text style={styles.text}>
-        We do not share your data with third parties.
+        We do not share your data with third parties except for infrastructure providers necessary to operate the app.
         {"\n\n"}
-        Infrastructure provider:
+        Infrastructure providers:
         {"\n"}
-        • Supabase (database and authentication)
+        • Supabase (database and authentication){"\n"}
+        • Expo (app infrastructure){"\n"}
+        • Apple App Store / Google Play (app distribution)
       </Text>
-
 
       <Text style={styles.heading}>
         Data Retention
@@ -102,7 +106,6 @@ export function PrivacyContent() {
         Deleted data may remain temporarily for backup and synchronization purposes.
       </Text>
 
-
       <Text style={styles.heading}>
         Your Rights (GDPR)
       </Text>
@@ -116,9 +119,8 @@ export function PrivacyContent() {
         • Export your data{"\n"}
         • Withdraw consent
         {"\n\n"}
-        You may delete your account directly in the app or contact us for assistance.
+        You may delete your account directly in the app or contact the developer for assistance.
       </Text>
-
 
       <Text style={styles.heading}>
         Account Deletion
@@ -128,15 +130,13 @@ export function PrivacyContent() {
         You may delete your account at any time. Deleting your account removes your personal data and stops synchronization.
       </Text>
 
-
       <Text style={styles.heading}>
         International Users
       </Text>
 
       <Text style={styles.text}>
-        This application is available worldwide. By using the app, you consent to the processing of your data as described.
+        This application is available worldwide. By using the app, you consent to the processing of your data as described in this policy.
       </Text>
-
 
       <Text style={styles.heading}>
         Changes
@@ -146,6 +146,13 @@ export function PrivacyContent() {
         This privacy policy may be updated in future versions of the application.
       </Text>
 
+      <Text style={styles.heading}>
+        Last Updated
+      </Text>
+
+      <Text style={styles.text}>
+        April 2026
+      </Text>
     </View>
   );
 }

@@ -1,3 +1,4 @@
+import PrivacyModal from "@/components/PrivacyModal";
 import * as appService from "@/services/appService";
 import * as practiceService from "@/services/practiceService";
 import { exportBackup, importBackup } from "@/utils/backup";
@@ -37,6 +38,7 @@ export default function HeaderMenu({
         width: number;
         height: number;
     } | null>(null);
+    const [privacyVisible, setPrivacyVisible] = useState(false);
 
     function handleRestoreDefaults() {
         Alert.alert(
@@ -257,9 +259,24 @@ export default function HeaderMenu({
                         >
                             <Text>About</Text>
                         </Pressable>
+
+                        <Pressable
+                            style={styles.item}
+                            onPress={() => {
+                                setMoreOpen(false);
+                                setPrivacyVisible(true);
+                            }}
+                        >
+                            <Text>Privacy & Data</Text>
+                        </Pressable>
+
                     </View>
                 </TouchableOpacity>
             </Modal>
+            <PrivacyModal
+                visible={privacyVisible}
+                onClose={() => setPrivacyVisible(false)}
+            />
         </View>
     );
 }

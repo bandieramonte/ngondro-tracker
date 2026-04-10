@@ -24,6 +24,10 @@ export default function AboutScreen() {
 
                 <View style={styles.separator} />
 
+                <Text style={styles.value}>
+                    If you have any feedback, comment, or would like to report a bug, feel free to contact the developer as shown hereunder:
+                </Text>
+
                 <Text style={styles.label}>Developer</Text>
                 <Text style={styles.value}>
                     Gian Piero Bandieramonte

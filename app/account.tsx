@@ -59,8 +59,11 @@ export default function AccountScreen() {
 
         try {
             setSyncing(true);
+            console.log("SYNC: start");
+
             await syncService.syncNow(authState.userId);
 
+            console.log("SYNC: finished");
             const state = syncService.getSyncState();
 
             if (state === "offline") {

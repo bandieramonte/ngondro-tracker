@@ -17,6 +17,18 @@ function setSyncState(next: SyncState) {
     emitSyncChanged();
 }
 
+async function withTimeout<T>(
+  promise: PromiseLike<T>,
+  ms = 15000
+): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("Sync timeout")), ms)
+    ),
+  ]);
+}
+
 export function getSyncState(): SyncState {
     return syncState;
 }
@@ -47,9 +59,9 @@ async function pushPendingPractices(userId: string) {
         deleted_at: null,
     }));
 
-    const { error } = await supabase
+    const { error } = await withTimeout( supabase
         .from("practices")
-        .upsert(payload, { onConflict: "id" });
+        .upsert(payload, { onConflict: "id" }));
 
     if (error) {
         throw error;
@@ -77,9 +89,9 @@ async function pushPendingSessions(userId: string) {
         deleted_at: null,
     }));
 
-    const { error } = await supabase
+    const { error } = await withTimeout(supabase
         .from("sessions")
-        .upsert(payload, { onConflict: "id" });
+        .upsert(payload, { onConflict: "id" }));
 
     if (error) {
         throw error;
@@ -162,10 +174,10 @@ async function pushPendingDeletions(userId: string) {
                 };
             }
 
-            const { data, error } = await supabase
+            const { data, error } = await withTimeout(supabase
                 .from(tableName)
                 .upsert(payload, { onConflict: "id" })
-                .select();
+                .select());
 
             if (error) {
                 console.error("Deletion sync failed payload:", payload);
@@ -185,7 +197,7 @@ async function pushPendingDeletions(userId: string) {
 }
 
 async function pullPractices(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await withTimeout(supabase
         .from("practices")
         .select(`
         id,
@@ -201,7 +213,7 @@ async function pullPractices(userId: string) {
     `)
         .eq("user_id", userId)
         .or("deleted_at.is.null,deleted_at.gt." + new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString()) // keep very recent deletions only
-        .order("order_index", { ascending: true });
+        .order("order_index", { ascending: true }));
 
     if (error) {
         throw error;
@@ -231,7 +243,7 @@ async function pullPractices(userId: string) {
 }
 
 async function pullSessions(userId: string) {
-    const { data, error } = await supabase
+    const { data, error } = await withTimeout(supabase
         .from("sessions")
         .select(`
       id,
@@ -244,7 +256,7 @@ async function pullSessions(userId: string) {
     `)
         .eq("user_id", userId)
         .or("deleted_at.is.null,deleted_at.gt." + new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString()) // keep very recent deletions only
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true }));
 
     if (error) {
         throw error;
@@ -282,6 +294,8 @@ export async function syncNow(userId: string | null) {
         return;
     }
 
+    console.log("SYNC: syncNow start");
+
     lastUserId = userId;
     
     if (!getIsOnline()) {
@@ -289,15 +303,21 @@ export async function syncNow(userId: string | null) {
         return;
     }
 
-    setSyncState("syncing");
-
     try {
+        setSyncState("syncing");
+        console.log("SYNC: claim");
         await claimAnonymousLocalDataIfNeeded(userId);
+        console.log("SYNC: pushing practices");
         await pushPendingPractices(userId);
+        console.log("SYNC: push sessions");
         await pushPendingSessions(userId);
+        console.log("SYNC: push deletions");
         await pushPendingDeletions(userId);
+        console.log("SYNC: pulling practices");
         await pullPractices(userId);
+        console.log("SYNC: pull sessions");
         await pullSessions(userId);
+        console.log("SYNC: finished");
         emitDataChanged();
         setSyncState("success");
     } catch (error) {
@@ -397,19 +417,19 @@ export async function resetLocalSyncState() {
 export async function wipeRemoteUserData(userId: string) {
     if (!userId) return;
 
-    const { data: sessionsDeleted, error: sessionError } = await supabase
+    const { data: sessionsDeleted, error: sessionError } = await withTimeout(supabase
         .from("sessions")
         .delete()
         .eq("user_id", userId)
-        .select();
+        .select());
 
     if (sessionError) throw sessionError;
 
-    const { data: practicesDeleted, error: practiceError } = await supabase
+    const { data: practicesDeleted, error: practiceError } = await withTimeout(supabase
         .from("practices")
         .delete()
         .eq("user_id", userId)
-        .select();
+        .select());
 
     if (practiceError) throw practiceError;
 }
