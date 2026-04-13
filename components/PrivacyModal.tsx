@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { colors } from "../styles/theme";
 import { PrivacyContent } from "../utils/privacyText";
 
 type Props = {
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
     },
 
     closeButton: {
-        backgroundColor: "#007AFF",
+        backgroundColor: colors.primary,
         paddingVertical: 14,
         borderRadius: 10,
         alignItems: "center",

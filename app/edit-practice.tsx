@@ -1,7 +1,8 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Button, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
 import * as practiceService from "../services/practiceService";
+import { colors } from "../styles/theme";
 import { digitsOnly, MAX_PRACTICE_NAME, MAX_TARGET_COUNT, validateNonNegativeInteger, validateRepetitionsPerSession, validateTargetCount } from "../utils/numberUtils";
 
 export default function EditPractice() {
@@ -117,7 +118,7 @@ export default function EditPractice() {
                     style={styles.input}
                 />
 
-                <Text>Repetitions per day</Text>
+                <Text>Daily target count</Text>
                 <TextInput
                     value={defaultAdd}
                     onChangeText={(v) => {
@@ -129,7 +130,14 @@ export default function EditPractice() {
                     style={styles.input}
                 />
 
-                <Button title="Save" onPress={save} />
+                <Pressable
+                    style={styles.saveButton}
+                    onPress={save}
+                >
+                    <Text style={styles.saveButtonText}>
+                        Save
+                    </Text>
+                </Pressable>
 
             </ScrollView>
         </KeyboardAvoidingView>
@@ -155,6 +163,20 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 20,
         color: "black"
+    },
+
+    saveButton: {
+        backgroundColor: colors.primary,
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: "center",
+        marginTop: 10
+    },
+
+    saveButtonText: {
+        color: "white",
+        fontSize: 16,
+        fontWeight: "600"
     }
 
 });

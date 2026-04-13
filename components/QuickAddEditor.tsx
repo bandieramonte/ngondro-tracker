@@ -60,7 +60,7 @@ export default function QuickAddEditor({
                 <View style={styles.card}>
 
                     <Text style={styles.title}>
-                        Edit repetitions per day
+                        Edit daily target count
                     </Text>
 
                     <Text style={styles.subtitle}>

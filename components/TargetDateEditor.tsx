@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { Calendar } from "react-native-calendars";
 import * as practiceService from "../services/practiceService";
+import { colors } from "../styles/theme";
 
 type Props = {
     visible: boolean;
@@ -72,6 +73,20 @@ export default function TargetDateEditor({
                             }}
                             onDayPress={(day) => {
                                 setSelectedDate(day.dateString);
+                            }}
+                            theme={{
+                                selectedDayBackgroundColor: colors.primary,
+                                selectedDayTextColor: "#fff",
+
+                                todayTextColor: colors.primary,
+
+                                arrowColor: colors.primary,
+
+                                monthTextColor: "#111",
+
+                                textDayFontWeight: "500",
+                                textMonthFontWeight: "600",
+                                textDayHeaderFontWeight: "600"
                             }}
                         />
                     )}

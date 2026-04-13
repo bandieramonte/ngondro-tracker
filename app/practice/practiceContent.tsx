@@ -2,8 +2,9 @@ import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { Alert, Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import CelebrationOverlay from "../../components/CelebrationOverlay";
+import FloatingAddAnimation, { FloatingAddAnimationRef } from "../../components/FloatingAddAnimation";
 import PracticeCalendar from "../../components/PracticeCalendar";
 import QuickAddEditor from "../../components/QuickAddEditor";
 import TargetDateEditor from "../../components/TargetDateEditor";
@@ -12,8 +13,14 @@ import { useReachedCelebration } from "../../hooks/useReachedCelebration";
 import * as appService from "../../services/appService";
 import * as practiceService from "../../services/practiceService";
 import * as sessionService from "../../services/sessionService";
+import { colors } from "../../styles/theme";
 import { subscribeData } from "../../utils/events";
-import { formatNumber } from "../../utils/numberUtils";
+import {
+    digitsOnly,
+    formatNumber,
+    MAX_REPETITIONS_PER_DAY,
+    validateNonNegativeInteger
+} from "../../utils/numberUtils";
 
 type Session = {
     id: string;
@@ -111,6 +118,10 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
             year: "numeric"
         });
     }, [targetDate, total, targetCount]);
+    const [customAmount, setCustomAmount] = useState("");
+
+    const dailyAnimRef = useRef<FloatingAddAnimationRef>(null);
+    const customAnimRef = useRef<FloatingAddAnimationRef>(null);
 
     useEffect(() => {
         schedulePracticeRefresh();
@@ -363,6 +374,7 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
                                 source={imageSource}
                                 style={{
                                     width: "100%",
+                                    // height: 300,
                                     aspectRatio: imageRatio,
                                     alignSelf: "center",
                                     marginBottom: 15
@@ -372,89 +384,166 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
                         </View>
                     )}
 
+                    <Pressable
+                        onPress={() => setInfoOpen(true)}
+                        style={styles.infoIcon}
+                    >
+                        <MaterialIcons
+                            name="info-outline"
+                            size={20}
+                            color="#666"
+                        />
+                    </Pressable>
+
                     <View style={styles.contentBlock}>
-
-                        <View style={styles.totalRow}>
-
-                            <View style={styles.totalWrapper}>
-                                <Text style={styles.total}>
-                                    {formatNumber(total) + ' ' + (!!targetCount ? '/ ' + formatNumber(targetCount) : '')}
+                        <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
+                            <View style={styles.indicatorRow}>
+                                <Text style={{ fontWeight: "bold" }}>
+                                    Progress
                                 </Text>
-                            </View>
-
-                            <Pressable
-                                onPress={() => setInfoOpen(true)}
-                                style={styles.infoIcon}
-                            >
-                                <MaterialIcons
-                                    name="info-outline"
-                                    size={20}
-                                    color="#666"
-                                />
-                            </Pressable>
-
-                        </View>
-
-                        <View style={styles.quickAddRow}>
-
-                            <Text style={styles.quickAddLabel}>
-                                Daily repetition count:
-                            </Text>
-
-                            <Pressable
-                                style={styles.quickAddButton}
-                                onPress={() => {
-                                    try {
-                                        sessionService.addSession(
-                                            practiceId,
-                                            Number(defaultAddCount)
-                                        );
-                                    } catch (error: any) {
-                                        alert(error.message);
-                                    }
-                                }}
-                                onLongPress={() => setQuickAddOpen(true)}
-                            >
-                                <Text style={styles.quickAddButtonText}>
-                                    +{formatNumber(defaultAddCount)}
-                                </Text>
-                            </Pressable>
-
-                        </View>
-
-                        <Pressable
-                            onPress={() => setTargetEditOpen(true)}
-                        >
-                            <View style={styles.targetDateRow}>
-
-                                <View style={styles.targetDateEditable}>
-                                    <Text style={styles.targetDateText}>
-                                        Target date: {formattedTargetDate}
+                                <View style={styles.totalWrapper}>
+                                    <Text style={styles.total}>
+                                        {formatNumber(total) + ' ' + (!!targetCount ? '/ ' + formatNumber(targetCount) : '')}
                                     </Text>
                                 </View>
 
-                                {isCelebrating(practiceId) && (
-                                    <>
-                                        <CelebrationOverlay
-                                            fade={celebrationFade}
-                                            sparkle1={sparkle1}
-                                            sparkle2={sparkle2}
-                                            sparkle3={sparkle3}
-                                        />
+                            </View>
 
-                                        <Animated.Text
-                                            style={[
-                                                styles.congratsText,
-                                                { opacity: celebrationFade }
-                                            ]}
-                                        >
-                                            Target reached, congratulations!!
-                                        </Animated.Text>
-                                    </>
-                                )}
+                            <Pressable
+                                style={styles.indicatorRow}
+                                onPress={() => setTargetEditOpen(true)}
+                            >
+                                <Text style={{ fontWeight: "bold" }}>
+                                    Target Date
+                                </Text>
+                                <View style={styles.targetDateRow}>
+
+                                    <View style={styles.targetDateEditable}>
+                                        <Text style={styles.targetDateText}>
+                                            {formattedTargetDate}
+                                        </Text>
+                                    </View>
+
+                                    {isCelebrating(practiceId) && (
+                                        <>
+                                            <CelebrationOverlay
+                                                fade={celebrationFade}
+                                                sparkle1={sparkle1}
+                                                sparkle2={sparkle2}
+                                                sparkle3={sparkle3}
+                                            />
+                                        </>
+                                    )}
+
+                                </View>
+                            </Pressable>
+                        </View>
+
+                        <View style={styles.addRow}>
+                            <View style={styles.addColumn}>
+                                <View style={styles.headerArea}>
+                                    <Text style={styles.sectionTitle}>
+                                        Add daily target
+                                    </Text>
+                                </View>
+
+                                <View style={styles.quickAddRow}>
+
+                                    <Pressable
+                                        style={styles.quickAddButton}
+                                        onPress={() => {
+                                            try {
+                                                sessionService.addSession(
+                                                    practiceId,
+                                                    Number(defaultAddCount)
+                                                );
+                                                dailyAnimRef.current?.trigger(
+                                                    `+${formatNumber(defaultAddCount)}\nadded!`
+                                                );
+                                            } catch (error: any) {
+                                                alert(error.message);
+                                            }
+                                        }}
+                                        onLongPress={() => setQuickAddOpen(true)}
+                                    >
+                                        <Text style={styles.quickAddButtonText}>
+                                            +{formatNumber(defaultAddCount)}
+                                        </Text>
+                                        <FloatingAddAnimation ref={dailyAnimRef} />
+                                    </Pressable>
+
+                                </View>
+                            </View>
+                            <Text style={styles.orText}>
+                                OR
+                            </Text>
+                            <View style={styles.addColumn}>
+                                <View style={styles.headerArea}>
+                                    <View style={styles.customHeader}>
+                                        <Text style={styles.sectionTitle}>Add </Text>
+                                        <TextInput
+                                            value={customAmount}
+                                            onChangeText={(text) => {
+                                                setCustomAmount(digitsOnly(text));
+                                            }}
+                                            keyboardType="numeric"
+                                            placeholder="custom"
+                                            placeholderTextColor="#999"
+                                            style={styles.customInput}
+                                        />
+                                        <Text style={styles.sectionTitle}> amount</Text>
+                                    </View>
+                                </View>
+
+                                <Pressable
+                                    style={[
+                                        styles.quickAddButton,
+                                        !customAmount && { opacity: 0.4 }
+                                    ]}
+                                    onPress={() => {
+
+                                        const error =
+                                            validateNonNegativeInteger(
+                                                customAmount,
+                                                "Custom amount"
+                                            );
+
+                                        if (error) {
+                                            alert(error);
+                                            return;
+                                        }
+
+                                        const value = Number(customAmount);
+
+                                        if (value > MAX_REPETITIONS_PER_DAY) {
+                                            alert(
+                                                `Custom amount cannot exceed ${MAX_REPETITIONS_PER_DAY.toLocaleString()}`
+                                            );
+                                            return;
+                                        }
+
+                                        try {
+                                            sessionService.addSession(
+                                                practiceId,
+                                                value
+                                            );
+                                            customAnimRef.current?.trigger(
+                                                `+${formatNumber(value)}\nadded!`
+                                            );
+                                        } catch (error: any) {
+                                            alert(error.message);
+                                        }
+                                    }}
+                                >
+                                    <Text style={styles.quickAddButtonText}>
+                                        {customAmount ? `+${formatNumber(customAmount)}` : "+"}
+                                    </Text>
+                                    <FloatingAddAnimation ref={customAnimRef} />
+                                </Pressable>
 
                             </View>
-                        </Pressable>
+
+                        </View>
 
                         <PracticeCalendar
                             data={calendarData}
@@ -561,11 +650,11 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
                             onPress={() => { }}
                         >
                             <Text style={styles.infoTitle}>
-                                Editing Practice Data
+                                Adjusting Practice Data
                             </Text>
 
                             <Text style={styles.infoText}>
-                                You can edit the daily repetition count and the target date.
+                                You can edit the daily repetition count by long pressing its corresponding button. You can also edit the target date by tapping it.
                             </Text>
 
                             <Text style={styles.infoText}>
@@ -617,8 +706,10 @@ const styles = StyleSheet.create({
     },
 
     sectionTitle: {
-        fontSize: 16,
-        marginBottom: 10
+        fontSize: 13,
+        color: "#666",
+        marginTop: 12,
+        marginBottom: 6
     },
 
     row: {
@@ -734,10 +825,9 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
 
-    totalRow: {
-        flexDirection: "row",
+    indicatorRow: {
         alignItems: "center",
-        gap: 8,
+        gap: 3,
         flexWrap: "wrap",
         justifyContent: "space-between"
     },
@@ -797,15 +887,20 @@ const styles = StyleSheet.create({
     },
 
     quickAddButton: {
-        paddingVertical: 4,
-        paddingHorizontal: 10,
-        backgroundColor: "#e5e7eb",
-        borderRadius: 8
+        width: 80,
+        height: 80,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#eef2ff",
+        borderRadius: 100,
+        borderWidth: 2,
+        borderColor: colors.primary,
     },
 
     quickAddButtonText: {
-        fontSize: 14,
-        fontWeight: "600"
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#111"
     },
 
     quickAddInput: {
@@ -833,8 +928,9 @@ const styles = StyleSheet.create({
     },
 
     infoIcon: {
-        marginLeft: 8,
-        padding: 3
+        marginLeft: "auto",
+        marginRight: 15,
+        marginBottom: -10
     },
 
     infoOverlay: {
@@ -877,5 +973,77 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: "600",
         color: "#2563eb"
+    },
+
+    customRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginTop: 8,
+        marginBottom: 8,
+        flexWrap: "wrap"
+    },
+
+    customLabel: {
+        fontSize: 14,
+        color: "#666",
+        marginRight: 8
+    },
+
+    customInput: {
+        borderWidth: 1,
+        borderColor: "#ddd",
+        borderRadius: 8,
+        paddingHorizontal: 7,
+        paddingVertical: 4,
+        width: 65,
+        textAlign: "center",
+        color: "black",
+        alignSelf: "center"
+    },
+
+    customButton: {
+        backgroundColor: "#e5e7eb",
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 8
+    },
+
+    customButtonText: {
+        fontSize: 14,
+        fontWeight: "600"
+    },
+
+    addRow: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+        alignItems: "flex-start",
+        marginTop: 8
+    },
+
+    addColumn: {
+        alignItems: "center",
+        width: 120
+    },
+
+    orText: {
+        alignSelf: "center",
+        marginTop: 24,
+        color: "#666"
+    },
+    customHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center"
+    },
+    headerArea: {
+        height: 60,
+        justifyContent: "center",
+        alignItems: "center"
+    },
+    addFloating: {
+        position: "absolute",
+        fontSize: 14,
+        fontWeight: "600",
+        color: "#8B1E3F"
     },
 });

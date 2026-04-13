@@ -1,4 +1,5 @@
 import { Animated, StyleSheet } from "react-native";
+import { colors } from "../styles/theme";
 
 type Props = {
     fade: Animated.Value;
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
     sparkle: {
         position: "absolute",
         fontSize: 16,
-        color: "#a78bfa",
+        color: colors.primary,
         fontWeight: "700",
     },
 });

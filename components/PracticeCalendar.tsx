@@ -1,6 +1,7 @@
 import { FlashList, FlashListRef } from "@shopify/flash-list";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { colors } from "../styles/theme";
 
 type DayData = {
     date: string;
@@ -112,6 +113,7 @@ export default function PracticeCalendar({
     const listRef = useRef<FlashListRef<number>>(null);
     const currentOffset = useRef(0);
     const currentIndex = useRef(0);
+    const hasInitialScroll = useRef(false);
 
     useEffect(() => {
 
@@ -128,6 +130,27 @@ export default function PracticeCalendar({
     useEffect(() => {
         setVisibleEndWeek(endWeekIndex);
     }, [endWeekIndex]);
+
+    useEffect(() => {
+        hasInitialScroll.current = false;
+    }, [startDate]);
+
+    function scrollToToday() {
+
+        if (hasInitialScroll.current) return;
+
+        const index = getTodayWeekIndex();
+
+        listRef.current?.scrollToOffset({
+            offset: Math.max(
+                0,
+                (index - Math.floor(VISIBLE_WEEKS / 2)) * WEEK_HEIGHT
+            ),
+            animated: false
+        });
+
+        hasInitialScroll.current = true;
+    }
 
     function formatMonth(date: Date) {
         return date.toLocaleDateString(undefined, {
@@ -229,6 +252,17 @@ export default function PracticeCalendar({
         });
     }
 
+    function getTodayWeekIndex() {
+
+        const today = new Date();
+
+        const diffDays =
+            (today.getTime() - baseWeekStart.getTime()) /
+            (1000 * 60 * 60 * 24);
+
+        return Math.max(0, Math.floor(diffDays / 7));
+    }
+
     return (
         <View style={styles.container}>
             <View
@@ -273,7 +307,8 @@ export default function PracticeCalendar({
                 </View>
 
                 <FlashList<number>
-                    initialScrollIndex={0}
+                    // initialScrollIndex={0}
+                    onLoad={scrollToToday}
                     onScroll={handleScroll}
                     scrollEventThrottle={16}
                     nestedScrollEnabled
@@ -417,6 +452,7 @@ const styles = StyleSheet.create({
         textAlign: "center",
         width: "100%",
         includeFontPadding: false,
+        color: colors.primary
     },
 
     monthHeader: {
@@ -427,7 +463,7 @@ const styles = StyleSheet.create({
     },
 
     today: {
-        borderColor: "#3b82f6",
+        borderColor: colors.primary,
         borderLeftWidth: 2,
         borderTopWidth: 2,
         borderBottomWidth: 2,
@@ -464,6 +500,7 @@ const styles = StyleSheet.create({
         textAlignVertical: "center",
         paddingVertical: 0,
         includeFontPadding: false,
+        color: colors.primary
     },
 
     dayCountSmall: {

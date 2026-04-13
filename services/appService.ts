@@ -79,7 +79,8 @@ export function getCalendarStartDate(): Date {
   const date =
     restore ?? install ?? new Date().toISOString();
 
-  return new Date(date);
+  // return new Date(date);
+  return new Date(new Date().getTime() - (60 * 24 * 60 * 60 * 1000));
 }
 
 export function ensureInstallDate() {

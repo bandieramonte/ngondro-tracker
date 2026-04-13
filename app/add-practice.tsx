@@ -1,7 +1,8 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Button, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
 import * as practiceService from "../services/practiceService";
+import { colors } from "../styles/theme";
 import { digitsOnly, MAX_PRACTICE_NAME, MAX_TARGET_COUNT, validateRepetitionsPerSession, validateTargetCount } from "../utils/numberUtils";
 
 export default function AddPractice() {
@@ -107,10 +108,14 @@ export default function AddPractice() {
                     style={styles.input}
                 />
 
-                <Button
-                    title="Save"
+                <Pressable
+                    style={styles.saveButton}
                     onPress={savePractice}
-                />
+                >
+                    <Text style={styles.saveButtonText}>
+                        Save
+                    </Text>
+                </Pressable>
 
             </ScrollView>
         </KeyboardAvoidingView>
@@ -137,6 +142,20 @@ const styles = StyleSheet.create({
         padding: 10,
         marginBottom: 15,
         color: "black"
+    },
+
+    saveButton: {
+        backgroundColor: colors.primary,
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: "center",
+        marginTop: 10
+    },
+
+    saveButtonText: {
+        color: "white",
+        fontSize: 16,
+        fontWeight: "600"
     }
 
 });

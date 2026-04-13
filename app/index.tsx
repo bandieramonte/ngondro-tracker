@@ -3,7 +3,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as Progress from "react-native-progress";
 import CelebrationOverlay from "../components/CelebrationOverlay";
 import QuickAddEditor from "../components/QuickAddEditor";
@@ -12,6 +12,7 @@ import { useReachedCelebration } from "../hooks/useReachedCelebration";
 import * as dashboardService from "../services/dashboardService";
 import * as practiceService from "../services/practiceService";
 import * as sessionService from "../services/sessionService";
+import { colors } from "../styles/theme";
 import { formatNumber } from "../utils/numberUtils";
 
 type Practice = {
@@ -47,7 +48,6 @@ export default function Dashboard() {
   } = useReachedCelebration();
   const refreshTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [infoOpen, setInfoOpen] = useState(false);
-  const { width } = useWindowDimensions();
 
   useFocusEffect(
     useCallback(() => {
@@ -146,22 +146,23 @@ export default function Dashboard() {
           alignSelf: "center"
         }}
       >
-        <View style={styles.streakRow}>
-          <Text style={styles.streakText}>
-            Streak: {streak} {streak === 1 ? "day" : "days"}
-          </Text>
+        <View style={styles.streakContainer}>
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakText}>
+              Streak: {streak} {streak === 1 ? "day" : "days"}
+            </Text>
 
-          <Pressable
-            onPress={() => setInfoOpen(true)}
-          >
-            <MaterialIcons
-              name="info-outline"
-              size={20}
-              color="#666"
-            />
-          </Pressable>
+            <Pressable
+              onPress={() => setInfoOpen(true)}
+            >
+              <MaterialIcons
+                name="info-outline"
+                size={20}
+                color="#666"
+              />
+            </Pressable>
+          </View>
         </View>
-
         {practices.map((practice) => {
 
           const currentCycleProgress = practice.total >= practice.targetCount ? 1 : (practice.total % practice.targetCount) / practice.targetCount;
@@ -174,7 +175,7 @@ export default function Dashboard() {
 
           const expectedTargetDate =
             practice.targetCount > 0 && practice.total >= practice.targetCount
-              ? "Reached!"
+              ? <Text style={{ color: colors.primary }}>Reached!</Text>
               : targetDate
                 ? targetDate.toLocaleDateString("en-US", {
                   month: "long",
@@ -215,6 +216,10 @@ export default function Dashboard() {
                       progress={currentCycleProgress}
                       width={null}
                       height={10}
+                      color={colors.primary}
+                      unfilledColor="#E5E5E5"
+                      borderWidth={0}
+                      borderRadius={5}
                     />
 
                     <Text style={styles.countText}>
@@ -373,7 +378,6 @@ const styles = StyleSheet.create({
 
   container: {
     padding: 20,
-    marginTop: 5,
     marginBottom: 10,
     paddingBottom: 40
   },
@@ -432,7 +436,7 @@ const styles = StyleSheet.create({
 
   quickAddButtonPressed: {
     opacity: 0.65,
-    transform: [{ scale: 1.08 }],
+    transform: [{ scale: 1.18 }],
   },
 
   modalOverlay: {
@@ -532,7 +536,7 @@ const styles = StyleSheet.create({
 
   congratsText: {
     fontSize: 12,
-    color: "#7c3aed",
+    color: colors.primary,
     fontWeight: "700",
     marginTop: 2,
   },
@@ -545,20 +549,6 @@ const styles = StyleSheet.create({
     height: 24,
     pointerEvents: "none",
     zIndex: 20,
-  },
-
-  sparkle: {
-    position: "absolute",
-    fontSize: 16,
-    color: "#a78bfa",
-    fontWeight: "700",
-  },
-
-  streakRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
   },
 
   streakText: {
@@ -606,6 +596,28 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#2563eb"
+  },
+
+  streakContainer: {
+    alignItems: "center",
+    marginBottom: 20
+  },
+
+  streakBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
 });
