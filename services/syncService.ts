@@ -326,7 +326,7 @@ export async function syncNow(userId: string | null) {
         setSyncState("error");
 
         // Detect auth-related error
-        if (await isUserDeleted(error)) {
+        if (await isUserDeleted()) {
             console.log("Auth invalid — signing out");
             emitAuthInvalid();
             return;
@@ -452,7 +452,7 @@ function getRetryDelay() {
     return Math.min(30000, 2000 * Math.pow(2, retryCount));
 }
 
-export async function isUserDeleted(error: any) {
+export async function isUserDeleted() {
   const { data } = await supabase.auth.getUser();
   return !data?.user;
 }

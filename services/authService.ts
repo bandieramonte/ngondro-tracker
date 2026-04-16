@@ -258,7 +258,7 @@ export async function signOut() {
     const { error } = await supabase.auth.signOut({
         scope: "local", // ✅ ONLY logs out this device
     });
-    
+
     if (error) {
         throw error;
     }
@@ -275,24 +275,27 @@ export async function deleteAccount() {
     const { error } = await supabase.functions.invoke("delete-user");
 
     if (error) {
-        console.error("Delete account failed:", error);
+        console.warn("Delete account error:", error);
+
+        // ✅ Check actual auth state instead of guessing error strings
+        const deleted = await syncService.isUserDeleted();
+
+        if (deleted) {
+            Alert.alert(
+                "Account removed",
+                "Your account was deleted on another device."
+            );
+
+            await signOut();
+            await syncService.resetLocalSyncState();
+            return;
+        }
+
+        // ❌ Real failure
         throw new Error("Failed to delete account. Please try again.");
     }
 
+    // ✅ Normal success
     await signOut();
     await syncService.resetLocalSyncState();
-}
-
-export async function resetPassword(email: string) {
-
-    const redirectTo =
-      "ngondrotracker:///reset-password";
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo,
-    });
-
-    if (error) {
-        throw new Error(error.message);
-    }
 }

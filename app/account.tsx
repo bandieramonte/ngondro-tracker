@@ -61,7 +61,7 @@ export default function AccountScreen() {
             setSyncing(true);
             console.log("SYNC: start");
 
-            if (await syncService.isUserDeleted(null)) {
+            if (await syncService.isUserDeleted()) {
                 Alert.alert(
                     "Account removed",
                     "Your account was deleted on another device."
