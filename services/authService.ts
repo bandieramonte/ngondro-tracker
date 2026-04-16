@@ -255,8 +255,10 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signOut() {
-    const { error } = await supabase.auth.signOut();
-
+    const { error } = await supabase.auth.signOut({
+        scope: "local", // ✅ ONLY logs out this device
+    });
+    
     if (error) {
         throw error;
     }
