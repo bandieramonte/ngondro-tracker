@@ -277,7 +277,6 @@ export async function deleteAccount() {
     if (error) {
         console.warn("Delete account error:", error);
 
-        // ✅ Check actual auth state instead of guessing error strings
         const deleted = await syncService.isUserDeleted();
 
         if (deleted) {
@@ -291,11 +290,23 @@ export async function deleteAccount() {
             return;
         }
 
-        // ❌ Real failure
         throw new Error("Failed to delete account. Please try again.");
     }
 
-    // ✅ Normal success
     await signOut();
     await syncService.resetLocalSyncState();
+}
+
+export async function resetPassword(email: string) {
+
+    const redirectTo =
+      "ngondrotracker:///reset-password";
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
+    });
+
+    if (error) {
+        throw new Error(error.message);
+    }
 }
