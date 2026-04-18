@@ -136,15 +136,13 @@ export default function PracticeCalendar({
     }, [startDate]);
 
     function scrollToToday() {
-
         if (hasInitialScroll.current) return;
+        if (!listRef.current) return;
 
-        const index = getTodayWeekIndex();
-
-        listRef.current?.scrollToOffset({
-            offset: Math.max(
+        listRef.current?.scrollToIndex({
+            index: Math.max(
                 0,
-                (index - Math.floor(VISIBLE_WEEKS / 2)) * WEEK_HEIGHT
+                getTodayWeekIndex() - Math.floor(VISIBLE_WEEKS / 2)
             ),
             animated: false
         });
@@ -308,8 +306,9 @@ export default function PracticeCalendar({
 
                 <View style={{ height: WEEK_HEIGHT * VISIBLE_WEEKS }}>
                     <FlashList<number>
-                        // initialScrollIndex={0}
-                        onLoad={scrollToToday}
+                        onContentSizeChange={() => {
+                            scrollToToday();
+                        }}
                         onScroll={handleScroll}
                         scrollEventThrottle={16}
                         nestedScrollEnabled

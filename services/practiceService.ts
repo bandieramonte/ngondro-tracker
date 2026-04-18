@@ -10,7 +10,7 @@ import { SyncMetadata } from "../types/sync";
 import { emitDataChanged } from "../utils/events";
 import { MAX_TARGET_COUNT } from "../utils/numberUtils";
 
-function getWriteSyncMetadata() : SyncMetadata {
+export function getWriteSyncMetadata() : SyncMetadata {
     const userId = authService.getCurrentUserId();
     const now = Date.now();
 

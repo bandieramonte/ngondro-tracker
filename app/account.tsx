@@ -79,7 +79,7 @@ export default function AccountScreen() {
             if (state === "offline") {
                 Alert.alert("Offline", "You are offline. Sync will resume when you're back online.");
             } else if (state === "success") {
-                Alert.alert("Sync complete", "Local changes were pushed to the cloud.");
+                Alert.alert("Sync complete", "Local and cloud data are now synchronized..");
             } else if (state === "error") {
                 Alert.alert("Sync failed", "An error occurred during sync.");
             }

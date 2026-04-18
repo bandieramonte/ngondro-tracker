@@ -9,6 +9,7 @@ import * as deletedRecordRepo from "../repositories/deletedRecordRepo";
 import * as practiceRepo from "../repositories/practiceRepo";
 import * as sessionRepo from "../repositories/sessionRepo";
 import * as authService from "../services/authService";
+import * as practiceService from "../services/practiceService";
 import * as syncService from "../services/syncService";
 import { emitDataChanged } from "../utils/events";
 import { initializeNetworkListener } from "./networkService";
@@ -124,6 +125,24 @@ export async function restoreDefaults() {
                           }
                       );
                   }
+              }
+          }
+
+          for (const defaultPractice of DEFAULT_PRACTICES) {
+              const existingPractice =
+                  practiceRepo.getPracticeById(defaultPractice.id);
+
+              if (!existingPractice) {
+                  practiceRepo.insertPractice(
+                      defaultPractice.id,
+                      defaultPractice.name,
+                      defaultPractice.targetCount,
+                      defaultPractice.orderIndex,
+                      practiceService.getWriteSyncMetadata(),
+                      defaultPractice.imageKey ?? null,
+                      defaultPractice.defaultAddCount ?? 108,
+                      0
+                  );
               }
           }
 
