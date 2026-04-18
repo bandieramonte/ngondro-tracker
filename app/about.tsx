@@ -15,18 +15,27 @@ export default function AboutScreen() {
                 <Text style={styles.version}>Version {version}</Text>
 
                 <Text style={styles.section}>
-                    An app to track Ngöndro practice progress.
+                    Ngöndro Tracker is an offline-first app designed to help practitioners track and preserve their Ngöndro practice progress over time.
+                </Text>
+
+                <Text style={styles.section}>
+                    Your practice data is stored locally on your device first, allowing the app to work reliably even without an internet connection.
+                </Text>
+
+                <Text style={styles.section}>
+                    To help protect years of accumulated practice history, the app also supports backup import/export as well as optional cloud syncing, so you can restore your data on a new device or recover it if your previous device is lost or replaced.
                 </Text>
 
                 <Text style={styles.section}>
                     This app is not affiliated with any official organization.
                 </Text>
 
+                <Text style={styles.value}>
+                    If you have any feedback, comments, or would like to report a bug, feel free to contact the developer using the information below:
+                </Text>
+
                 <View style={styles.separator} />
 
-                <Text style={styles.value}>
-                    If you have any feedback, comment, or would like to report a bug, feel free to contact the developer as shown hereunder:
-                </Text>
 
                 <Text style={styles.label}>Developer</Text>
                 <Text style={styles.value}>
@@ -37,7 +46,6 @@ export default function AboutScreen() {
                 <Text style={styles.value}>
                     gian@bandieramonte.com
                 </Text>
-
             </ScrollView>
         </>
     );
