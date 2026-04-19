@@ -5,6 +5,7 @@ import { Alert, Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text,
 import CelebrationOverlay from "../../components/CelebrationOverlay";
 import FloatingAddAnimation, { FloatingAddAnimationRef } from "../../components/FloatingAddAnimation";
 import PracticeCalendar from "../../components/PracticeCalendar";
+import PracticeDropdownMenu from "../../components/PracticeDropdownMenu";
 import PracticeHistoryModal from "../../components/PracticeHistoryModal";
 import QuickAddEditor from "../../components/QuickAddEditor";
 import TargetDateEditor from "../../components/TargetDateEditor";
@@ -512,76 +513,14 @@ export default function PracticeContent({ practiceId }: { practiceId: string }) 
                             </Pressable>
                         </Modal>
 
-                        <Modal
+                        <PracticeDropdownMenu
                             visible={menuOpen}
-                            transparent
-                            animationType="fade"
-                            onRequestClose={closeMenu}
-                        >
-                            <Pressable
-                                style={styles.menuOverlay}
-                                onPress={closeMenu}
-                            >
-                                {menuAnchor && (
-                                    <View
-                                        style={[
-                                            styles.dropdownMenuModal,
-                                            {
-                                                top: menuAnchor.y + menuAnchor.height + 8,
-                                                left: Math.max(
-                                                    20,
-                                                    menuAnchor.x + menuAnchor.width / 2 - 110
-                                                ),
-                                            }
-                                        ]}
-                                    >
-
-                                        <Pressable
-                                            style={styles.dropdownItem}
-                                            onPress={openEditPractice}
-                                        >
-                                            <MaterialIcons
-                                                name="edit"
-                                                size={18}
-                                                color="#333"
-                                            />
-                                            <Text style={styles.dropdownText}>
-                                                Edit practice
-                                            </Text>
-                                        </Pressable>
-
-                                        <Pressable
-                                            style={styles.dropdownItem}
-                                            onPress={openPracticeHistory}
-                                        >
-                                            <MaterialIcons
-                                                name="show-chart"
-                                                size={18}
-                                                color="#333"
-                                            />
-                                            <Text style={styles.dropdownText}>
-                                                Practice history
-                                            </Text>
-                                        </Pressable>
-
-                                        <Pressable
-                                            style={styles.dropdownItem}
-                                            onPress={confirmDelete}
-                                        >
-                                            <MaterialIcons
-                                                name="delete-outline"
-                                                size={18}
-                                                color="#c62828"
-                                            />
-                                            <Text style={styles.dropdownDeleteText}>
-                                                Delete practice
-                                            </Text>
-                                        </Pressable>
-
-                                    </View>
-                                )}
-                            </Pressable>
-                        </Modal>
+                            anchor={menuAnchor}
+                            onClose={closeMenu}
+                            onEdit={openEditPractice}
+                            onHistory={openPracticeHistory}
+                            onDelete={confirmDelete}
+                        />
 
                     </View>
 
@@ -708,41 +647,6 @@ const styles = StyleSheet.create({
         borderRadius: 999,
         paddingBottom: 4,
         backgroundColor: "#f3f4f6",
-    },
-
-    menuOverlay: {
-        flex: 1,
-    },
-
-    dropdownMenuModal: {
-        position: "absolute",
-        width: 220,
-        backgroundColor: "white",
-        borderRadius: 10,
-        paddingVertical: 6,
-        shadowColor: "#000",
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 8,
-    },
-
-    dropdownItem: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        paddingVertical: 12,
-        paddingHorizontal: 14,
-    },
-
-    dropdownText: {
-        fontSize: 15,
-        color: "#333",
-    },
-
-    dropdownDeleteText: {
-        fontSize: 15,
-        color: "#c62828",
     },
 
     imageWrapper: {
