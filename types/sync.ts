@@ -5,7 +5,8 @@ export type SyncState =
   | "syncing"
   | "success"
   | "error"
-  | "offline";
+  | "offline"
+  | "timeout";
   
 export type SyncMetadata = {
   userId: string | null;

@@ -79,9 +79,14 @@ export default function AccountScreen() {
             if (state === "offline") {
                 Alert.alert("Offline", "You are offline. Sync will resume when you're back online.");
             } else if (state === "success") {
-                Alert.alert("Sync complete", "Local and cloud data are now synchronized..");
+                Alert.alert("Sync complete", "Local and cloud data are now synchronized.");
             } else if (state === "error") {
                 Alert.alert("Sync failed", "An error occurred during sync.");
+            } else if (state === "timeout") {
+                Alert.alert(
+                    "Sync timeout",
+                    "Sync took too long. Please try again in a few minutes."
+                );
             }
         } catch (error: any) {
             Alert.alert("Sync failed", error?.message ?? "Unknown error");
@@ -161,6 +166,7 @@ export default function AccountScreen() {
                                 syncState === "error" && { color: "red" },
                                 syncState === "offline" && { color: "orange" },
                                 syncState === "success" && { color: "green" },
+                                syncState === "timeout" && { color: "orange" },
                             ]}
                         >
                             {getSyncLabel(syncState)}

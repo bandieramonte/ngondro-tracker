@@ -323,8 +323,11 @@ export async function syncNow(userId: string | null) {
         retryCount = 0;
     } catch (error: any) {
         console.error("syncNow error", error);
-        setSyncState("error");
-
+        if (error?.message === "Network timeout during sync") {
+            setSyncState("timeout");
+        } else {
+            setSyncState("error");
+        }
         // Detect auth-related error
         if (await isUserDeleted()) {
             console.log("Auth invalid — signing out");
@@ -418,6 +421,8 @@ export function getSyncLabel(state: SyncState): string {
             return "Sync failed";
         case "offline":
             return "Offline";
+        case "timeout":
+            return "Timeout (try again in a few minutes)";
         default:
             return "Idle";
     }
