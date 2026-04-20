@@ -61,6 +61,14 @@ export default function AccountScreen() {
             setSyncing(true);
             console.log("SYNC: start");
 
+            if (!getIsOnline()) {
+                Alert.alert(
+                    "Offline",
+                    "You are offline. Sync will resume when you're back online."
+                );
+                return;
+            }
+
             if (await syncService.isUserDeleted()) {
                 Alert.alert(
                     "Account removed",
@@ -76,9 +84,7 @@ export default function AccountScreen() {
             console.log("SYNC: finished");
             const state = syncService.getSyncState();
 
-            if (state === "offline") {
-                Alert.alert("Offline", "You are offline. Sync will resume when you're back online.");
-            } else if (state === "success") {
+            if (state === "success") {
                 Alert.alert("Sync complete", "Local and cloud data are now synchronized.");
             } else if (state === "error") {
                 Alert.alert("Sync failed", "An error occurred during sync.");

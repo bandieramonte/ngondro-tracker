@@ -458,8 +458,20 @@ function getRetryDelay() {
 }
 
 export async function isUserDeleted() {
-  const { data } = await supabase.auth.getUser();
-  return !data?.user;
+    try {
+        const { data } = await withTimeout(
+            supabase.auth.getUser(),
+            8000
+        );
+
+        return !data?.user;
+    } catch (error) {
+        console.warn("isUserDeleted timeout/error:", error);
+
+        // If auth check itself fails,
+        // do not assume account deleted
+        return false;
+    }
 }
 
 export async function reassignLocalDataToUser(userId: string) {
