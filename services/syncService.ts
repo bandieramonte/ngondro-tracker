@@ -293,8 +293,6 @@ export async function syncNow(userId: string | null) {
         return;
     }
 
-    console.log("SYNC: syncNow start");
-
     lastUserId = userId;
     
     if (!getIsOnline()) {

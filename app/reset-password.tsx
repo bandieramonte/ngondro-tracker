@@ -38,17 +38,17 @@ export default function ResetPasswordScreen() {
             const { error } = await supabase.auth.updateUser({
                 password,
             });
-
             if (error) {
                 throw new Error(error.message);
             }
 
-            Alert.alert("Success", "Your password has been updated.");
-
-            // refresh auth state
-            await authService.initializeAuth();
-
-            router.replace("/");
+            Alert.alert(
+                "Success",
+                "Your password has been updated. Please sign in again."
+            );
+            authService.setPasswordRecoveryFlow(false);
+            await authService.signOut();
+            router.replace("/sign-in");
         } catch (error: any) {
 
             const message =

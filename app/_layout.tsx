@@ -5,14 +5,13 @@ import { subscribeAuth } from "@/utils/events";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, AppState, Linking, Pressable, View } from "react-native";
+import { Alert, Linking, Pressable, View } from "react-native";
 import * as appService from "../services/appService";
 import * as authService from "../services/authService";
 
 export default function Layout() {
     const [authState, setAuthState] = useState(authService.getAuthState());
     const handledDeepLink = useRef(false);
-    const appState = useRef(AppState.currentState);
 
     useEffect(() => {
         appService.initializeApp();
@@ -33,7 +32,7 @@ export default function Layout() {
             }
         }
 
-        function handleDeepLink(url: string) {
+        async function handleDeepLink(url: string) {
             if (handledDeepLink.current) return;
 
             const fragment = url.split("#")[1];
@@ -45,12 +44,29 @@ export default function Layout() {
             const type = params.get("type");
 
             if (type === "recovery" && access_token && refresh_token) {
+                authService.setPasswordRecoveryFlow(true);
+
                 handledDeepLink.current = true;
 
-                supabase.auth.setSession({
+                console.log("Setting recovery session...");
+
+                const { error } = await supabase.auth.setSession({
                     access_token,
                     refresh_token,
                 });
+
+                if (error) {
+                    console.error("setSession failed:", error);
+                    Alert.alert(
+                        "Reset failed",
+                        "Invalid or expired password reset link."
+                    );
+                    return;
+                }
+
+                console.log("Recovery session established");
+
+                router.replace("/reset-password");
             }
         }
 

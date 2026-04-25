@@ -2,8 +2,14 @@ import { supabase } from "@/lib/supabase";
 import * as profileRepo from "@/repositories/profileRepo";
 import * as syncService from "@/services/syncService";
 import { emitAuthChanged, subscribeAuthInvalid } from "@/utils/events";
+import Constants from "expo-constants";
 import { Alert } from "react-native";
 
+let isPasswordRecoveryFlow = false;
+
+export function setPasswordRecoveryFlow(value: boolean) {
+    isPasswordRecoveryFlow = value;
+}
 export type AuthState = {
     isAuthenticated: boolean;
     userId: string | null;
@@ -96,8 +102,13 @@ export async function initializeAuth() {
     if (!authSubscriptionInitialized) {
         authSubscriptionInitialized = true;
 
-        supabase.auth.onAuthStateChange(async (_event, session) => {
+        supabase.auth.onAuthStateChange(async (event, session) => {
+
             try {
+                if (isPasswordRecoveryFlow) {
+                    console.log("Skipping initializeAuth during password recovery");
+                    return;
+                }
                 if (!session?.user) {
                     setAuthState({
                         isAuthenticated: false,
@@ -181,7 +192,7 @@ export async function signUp(
         email: trimmedEmail,
         password,
         options: {
-            emailRedirectTo: "app108again://sign-in?confirmed=true",
+            emailRedirectTo: `${Constants.expoConfig?.scheme ?? 'app108again'}://sign-in?confirmed=true`,
             data: {
                 first_name: trimmedFirstName,
             },
@@ -256,7 +267,7 @@ export async function signIn(email: string, password: string) {
 
 export async function signOut() {
     const { error } = await supabase.auth.signOut({
-        scope: "local", // ✅ ONLY logs out this device
+        scope: "local",
     });
 
     if (error) {
@@ -315,8 +326,7 @@ export async function deleteAccount() {
 
 export async function resetPassword(email: string) {
 
-    const redirectTo =
-      "app108again:///reset-password";
+    const redirectTo = `${Constants.expoConfig?.scheme ?? 'app108again'}://reset-password`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo,
