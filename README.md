@@ -64,7 +64,7 @@ Track repetitions, visualize progress, estimate completion dates, and sync acros
 * User info
 * Sync status
 * Sync now
-* Sign out
+* Log out
 * Privacy & Data
 * Delete account
 

@@ -50,7 +50,7 @@ export default function AccountScreen() {
         try {
             await authService.signOut();
         } catch (error: any) {
-            Alert.alert("Sign out failed", error?.message ?? "Unknown error");
+            Alert.alert("Log out failed", error?.message ?? "Unknown error");
         }
     }
 
@@ -177,10 +177,6 @@ export default function AccountScreen() {
                         >
                             {getSyncLabel(syncState)}
                         </Text>
-
-                        {syncState === "syncing" && (
-                            <ActivityIndicator size="small" />
-                        )}
                     </View>
                 </View>
 
@@ -210,7 +206,7 @@ export default function AccountScreen() {
                             ]}
                             onPress={handleSignOut}
                         >
-                            <Text style={styles.buttonText}>Sign Out</Text>
+                            <Text style={styles.buttonText}>Log Out</Text>
                         </Pressable>
 
                         <TouchableOpacity

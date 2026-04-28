@@ -40,7 +40,7 @@ export default function SignUpScreen() {
 
             router.replace("/");
         } catch (error: any) {
-            Alert.alert("Sign up failed", error?.message ?? "Unknown error");
+            Alert.alert("Account creation failed", error?.message ?? "Unknown error");
         } finally {
             setSubmitting(false);
         }
@@ -55,7 +55,7 @@ export default function SignUpScreen() {
                 contentContainerStyle={styles.container}
                 keyboardShouldPersistTaps="handled"
             >
-                <Text style={styles.title}>Sign Up</Text>
+                <Text style={styles.title}>Create Account</Text>
 
                 <Text style={styles.label}>First name</Text>
                 <TextInput
@@ -112,7 +112,7 @@ export default function SignUpScreen() {
                     {submitting ? (
                         <ActivityIndicator />
                     ) : (
-                        <Text style={styles.buttonText}>Sign Up</Text>
+                        <Text style={styles.buttonText}>Create Account</Text>
                     )}
                 </Pressable>
 
@@ -120,7 +120,7 @@ export default function SignUpScreen() {
                     onPress={() => router.push("/sign-in")}
                     style={styles.linkButton}
                 >
-                    <Text style={styles.linkText}>Already have an account? Sign In</Text>
+                    <Text style={styles.linkText}>Already have an account? Log In</Text>
                 </Pressable>
             </ScrollView>
         </KeyboardAvoidingView>

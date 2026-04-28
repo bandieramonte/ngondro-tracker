@@ -333,6 +333,25 @@ export async function syncNow(userId: string | null) {
         }
 
         if (userId) {
+            if (retryCount >= 3) {
+                console.warn("Max sync retries reached");
+
+                retryCount = 0;
+
+                try {
+                    await supabase.auth.getSession();
+                } catch (e) {
+                    console.warn(
+                        "Session validation failed after max retries",
+                        e
+                    );
+                }
+
+                setSyncState("error");
+
+                return;
+            }
+
             pendingSyncUserId = userId;
 
             const delay = getRetryDelay();
@@ -426,7 +445,7 @@ export function getSyncLabel(state: SyncState): string {
         case "offline":
             return "Offline";
         case "timeout":
-            return "Timeout (try again in a few minutes)";
+            return "Timeout (try reopening app)";
         default:
             return "Idle";
     }

@@ -146,7 +146,7 @@ export default function HeaderMenu({
                                         onSignOut();
                                     }}
                                 >
-                                    <Text>Sign Out</Text>
+                                    <Text>Log Out</Text>
                                 </Pressable>
                             </>
                         ) : (
@@ -158,7 +158,7 @@ export default function HeaderMenu({
                                         router.push("/sign-in");
                                     }}
                                 >
-                                    <Text>Sign In</Text>
+                                    <Text>Log In</Text>
                                 </Pressable>
 
                                 <Pressable
@@ -168,7 +168,7 @@ export default function HeaderMenu({
                                         router.push("/sign-up");
                                     }}
                                 >
-                                    <Text>Sign Up</Text>
+                                    <Text>Create Account</Text>
                                 </Pressable>
                             </>
                         )}

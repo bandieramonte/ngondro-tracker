@@ -1,5 +1,6 @@
 import { DEFAULT_PRACTICES, SEEDED_IDS } from "@/constants/defaultPractices";
 import { enqueueWrite } from "@/database/writeQueue";
+import { supabase } from "@/lib/supabase";
 import { randomUUID } from "expo-crypto";
 import { AppState } from "react-native";
 import { db, initializeDatabase } from "../database/db";
@@ -15,7 +16,7 @@ import { emitDataChanged } from "../utils/events";
 import { initializeNetworkListener } from "./networkService";
 import { initializeSyncRetry } from "./syncService";
 
-const INACTIVE_THRESHOLD = 60 * 60 * 1000; //1 hour
+const INACTIVE_THRESHOLD = 10 * 60 * 1000; //10 minutes
 
 let lastActiveAt: number = Date.now();
 
@@ -201,13 +202,29 @@ export function ensureInstallDate() {
 }
 
 export async function handleAppResume() {
-    if (!authService.getCurrentUserId()) return;
+    const userId = authService.getCurrentUserId();
+
+    if (!userId) return;
 
     if (shouldForceSync(INACTIVE_THRESHOLD)) {
         try {
-            await syncService.syncNow(authService.getCurrentUserId());
+            console.log("Resume: waiting for network stabilization");
+
+            await new Promise(resolve =>
+                setTimeout(resolve, 1500)
+            );
+
+            await supabase.auth.getSession();
+
+            await syncService.requestSync(userId, {
+                immediate: true
+            });
+
         } catch (e) {
-            console.warn("Auto-sync failed", e);
+            console.warn(
+                "Auto-sync failed after resume",
+                e
+            );
         }
     }
 

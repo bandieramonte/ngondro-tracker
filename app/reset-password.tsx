@@ -44,7 +44,7 @@ export default function ResetPasswordScreen() {
 
             Alert.alert(
                 "Success",
-                "Your password has been updated. Please sign in again."
+                "Your password has been updated. Please log in again."
             );
             authService.setPasswordRecoveryFlow(false);
             await authService.signOut();

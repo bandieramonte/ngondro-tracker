@@ -206,7 +206,7 @@ export async function signUp(
     const user = data.user;
 
     if (!user) {
-        throw new Error("Sign up succeeded but no user was returned.");
+        throw new Error("Account creation succeeded but no user was returned.");
     }
 
     profileRepo.upsertUserProfile(
@@ -259,7 +259,7 @@ export async function signIn(email: string, password: string) {
     const user = data.user;
 
     if (!user) {
-        throw new Error("Sign in succeeded but no user was returned.");
+        throw new Error("Log in succeeded but no user was returned.");
     }
 
     await loadProfileIntoState(user.id, user.email ?? trimmedEmail);

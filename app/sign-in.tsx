@@ -45,7 +45,7 @@ export default function SignInScreen() {
             await authService.signIn(email, password);
             router.replace("/");
         } catch (error: any) {
-            Alert.alert("Sign in failed", error?.message ?? "Unknown error");
+            Alert.alert("Log in failed", error?.message ?? "Unknown error");
         } finally {
             setSubmitting(false);
         }
@@ -88,12 +88,12 @@ export default function SignInScreen() {
                 contentContainerStyle={styles.container}
                 keyboardShouldPersistTaps="handled"
             >
-                <Text style={styles.title}>Sign In</Text>
+                <Text style={styles.title}>Log In</Text>
 
                 {showConfirmedBanner && (
                     <View style={styles.successBanner}>
                         <Text style={styles.successBannerText}>
-                            Email confirmed. You can now sign in.
+                            Email confirmed. You can now log in.
                         </Text>
                     </View>
                 )}
@@ -161,7 +161,7 @@ export default function SignInScreen() {
                     {submitting ? (
                         <ActivityIndicator />
                     ) : (
-                        <Text style={styles.buttonText}>Sign In</Text>
+                        <Text style={styles.buttonText}>Log In</Text>
                     )}
                 </Pressable>
 
@@ -169,7 +169,7 @@ export default function SignInScreen() {
                     onPress={() => router.push("/sign-up")}
                     style={styles.linkButton}
                 >
-                    <Text style={styles.linkText}>Need an account? Sign Up</Text>
+                    <Text style={styles.linkText}>Need an account? Create one</Text>
                 </Pressable>
             </ScrollView>
         </KeyboardAvoidingView>

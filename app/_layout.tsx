@@ -113,7 +113,7 @@ export default function Layout() {
             await authService.signOut();
             router.replace("/");
         } catch (error: any) {
-            Alert.alert("Sign out failed", error?.message ?? "Unknown error");
+            Alert.alert("Log out failed", error?.message ?? "Unknown error");
         }
     }
 

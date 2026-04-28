@@ -34,7 +34,7 @@ export default function WelcomeModal({
                     </Text>
 
                     <Text style={styles.text}>
-                        It is built offline first, so your daily practice remains available even without internet access.
+                        It is built offline first, so your daily practice remains available without internet access.
                     </Text>
 
                     <Text style={styles.text}>
@@ -42,7 +42,7 @@ export default function WelcomeModal({
                     </Text>
 
                     <Text style={styles.text}>
-                        You can also export and import backups manually at any time.
+                        You can also export and import backup files manually at any time.
                     </Text>
 
                     <Text style={styles.text}>
