@@ -55,6 +55,7 @@ export default function AccountScreen() {
     }
 
     async function handleSyncNow() {
+
         if (syncing) return;
 
         try {
@@ -78,7 +79,6 @@ export default function AccountScreen() {
                 await authService.signOut();
                 return;
             }
-
             await syncService.syncNow(authState.userId);
 
             console.log("SYNC: finished");

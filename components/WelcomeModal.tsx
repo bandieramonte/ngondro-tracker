@@ -38,7 +38,7 @@ export default function WelcomeModal({
                     </Text>
 
                     <Text style={styles.text}>
-                        To safely preserve your progress throughout the years and across devices, you can create a free account for cloud sync and backup.
+                        To safely preserve your progress throughout the years and across devices, you can create an account for cloud sync and backup.
                     </Text>
 
                     <Text style={styles.text}>
