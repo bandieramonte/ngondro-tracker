@@ -56,14 +56,11 @@ export async function importBackup(onComplete?: () => void) {
 
             const userId = authService.getCurrentUserId();
 
-            if (userId) {
-                await syncService.wipeRemoteUserData(userId);
-            }
-
             await restoreBackupData(data);
 
             if (userId) {
-                await syncService.syncNow(userId);
+                await syncService.reassignLocalDataToUser(userId);
+                await syncService.requestSync(userId);
             }
 
             if (onComplete) {
@@ -77,7 +74,7 @@ export async function importBackup(onComplete?: () => void) {
         } catch (error) {
 
             Alert.alert(
-                "Restore failed",
+                "Backup failed",
                 error instanceof Error
                     ? error.message
                     : "The backup file could not be imported."
