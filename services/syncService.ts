@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabase, recreateSupabase } from "@/lib/supabase";
 import * as deletedRecordRepo from "@/repositories/deletedRecordRepo";
 import * as practiceRepo from "@/repositories/practiceRepo";
 import * as sessionRepo from "@/repositories/sessionRepo";
@@ -13,22 +13,68 @@ let scheduledSyncTimeout: ReturnType<typeof setTimeout> | null = null;
 let pendingSyncUserId: string | null = null;
 let lastUserId: string | null = null;
 let retryCount = 0;
+let forceFreshClient = false;
+let failureCount = 0;
 
+export function setForceFreshClient(value: boolean) {
+    forceFreshClient = value;
+}
 function setSyncState(next: SyncState) {
     syncState = next;
     emitSyncChanged();
 }
 
 export async function withTimeout<T>(
-  promise: PromiseLike<T>,
-  ms = 15000
+  promiseFactory: () => Promise<T>,
+  ms = 6000
 ): Promise<T> {
-  return Promise.race([
-    Promise.resolve(promise),
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error("Network timeout during sync")), ms)
-    ),
-  ]);
+
+  if (forceFreshClient) {
+      console.log("Using fresh client (skip timeout)");
+      forceFreshClient = false;
+      return await promiseFactory();
+  }
+
+  const run = () =>
+    Promise.race([
+      promiseFactory(),
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error("Network timeout during sync")), ms)
+      ),
+    ]);
+
+  try {
+    const result = await run();
+    failureCount = 0;
+    return result;
+
+  } catch (error: any) {
+
+    if (error?.message !== "Network timeout during sync") throw error;
+
+    failureCount++;
+    console.log(`Timeout detected (${failureCount})`);
+
+    await new Promise(r => setTimeout(r, 100)); // small buffer
+
+    if (failureCount >= 2) {
+        recreateSupabase();
+        await new Promise(r => setTimeout(r, 300));
+    }
+
+    console.log("Retrying after recovery...");
+
+    try {
+        const retryResult = await run();
+        failureCount = 0; 
+        return retryResult;
+
+    } catch (retryError) {
+
+        console.log("Final retry failed");
+        throw retryError;
+    }
+  }
 }
 
 export function getSyncState(): SyncState {
@@ -60,8 +106,7 @@ async function pushPendingPractices(userId: string) {
         updated_at: new Date(row.updatedAt ?? Date.now()).toISOString(),
         deleted_at: null,
     }));
-
-    const { error } = await withTimeout( supabase
+    const { error } = await withTimeout(async () => getSupabase()
         .from("practices")
         .upsert(payload, { onConflict: "id" }));
 
@@ -90,8 +135,7 @@ async function pushPendingSessions(userId: string) {
         updated_at: new Date(row.updatedAt ?? Date.now()).toISOString(),
         deleted_at: null,
     }));
-
-    const { error } = await withTimeout(supabase
+    const { error } = await withTimeout(async () => getSupabase()
         .from("sessions")
         .upsert(payload, { onConflict: "id" }));
 
@@ -175,8 +219,7 @@ async function pushPendingDeletions(userId: string) {
                     default_add_count: parsed.defaultAddCount ?? 108,
                 };
             }
-
-            const { data, error } = await withTimeout(supabase
+            const { data, error } = await withTimeout(async () => getSupabase()
                 .from(tableName)
                 .upsert(payload, { onConflict: "id" })
                 .select());
@@ -199,8 +242,7 @@ async function pushPendingDeletions(userId: string) {
 }
 
 async function pullPractices(userId: string): Promise<any[]> {
-    const { data, error } = await withTimeout(
-        supabase
+    const { data, error } = await withTimeout( async () => getSupabase()
             .from("practices")
             .select(`
                 id,
@@ -251,7 +293,7 @@ function applyRemotePractices(rows: any[]) {
 }
 
 async function pullSessions(userId: string) {
-    const { data, error } = await withTimeout(supabase
+    const { data, error } = await withTimeout(async () => getSupabase()
         .from("sessions")
         .select(`
       id,
@@ -373,45 +415,43 @@ export async function syncNow(userId: string | null) {
     } catch (error: any) {
         console.error("syncNow error", error);
 
-        if (error?.message === "Network timeout during sync") {
-            setSyncState("timeout");
-        } else {
-            setSyncState("error");
-        }
-
         if (await isUserDeleted()) {
             console.log("Auth invalid — signing out");
             emitAuthInvalid();
             return;
         }
 
-        if (userId) {
-            if (retryCount >= 3) {
-                console.warn("Max sync retries reached");
-                retryCount = 0;
-
-                try {
-                    await supabase.auth.getSession();
-                } catch (e) {
-                    console.warn("Session validation failed after max retries", e);
-                }
-
-                setSyncState("error");
-                return;
-            }
-
-            pendingSyncUserId = userId;
-
-            const delay = getRetryDelay();
-            retryCount++;
-
-            setTimeout(() => {
-                runQueuedSync();
-            }, delay);
+        if (error?.message !== "Network timeout during sync") {
+            setSyncState("error");
+            throw error;
         }
 
-        throw error;
+        if (retryCount >= 3) {
+            console.warn("Max sync retries reached");
+            retryCount = 0;
 
+            try {
+                await getSupabase().auth.getSession();
+            } catch (e) {
+                console.warn("Session validation failed after max retries", e);
+            }
+
+            setSyncState("error");
+            return;
+        }
+
+        setSyncState("syncing");
+
+        pendingSyncUserId = userId;
+
+        const delay = getRetryDelay();
+        retryCount++;
+
+        setTimeout(() => {
+            runQueuedSync();
+        }, delay);
+
+        // do NOT throw → prevents UI error
     } finally {
         emitSyncChanged();
     }
@@ -507,8 +547,8 @@ export async function resetLocalSyncState() {
 
 export async function wipeRemoteUserData(userId: string) {
     if (!userId) return;
-
-    const { data: sessionsDeleted, error: sessionError } = await withTimeout(supabase
+    
+    const { data: sessionsDeleted, error: sessionError } = await withTimeout(async () => getSupabase()
         .from("sessions")
         .delete()
         .eq("user_id", userId)
@@ -516,7 +556,7 @@ export async function wipeRemoteUserData(userId: string) {
 
     if (sessionError) throw sessionError;
 
-    const { data: practicesDeleted, error: practiceError } = await withTimeout(supabase
+    const { data: practicesDeleted, error: practiceError } = await withTimeout( async () => getSupabase()
         .from("practices")
         .delete()
         .eq("user_id", userId)
@@ -531,8 +571,8 @@ function getRetryDelay() {
 
 export async function isUserDeleted() {
     try {
-        const { data } = await withTimeout(
-            supabase.auth.getUser(),
+        const { data } = await withTimeout( async () => 
+            getSupabase().auth.getUser(),
             8000
         );
 

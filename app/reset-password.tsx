@@ -1,3 +1,4 @@
+import { getSupabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -13,7 +14,6 @@ import {
     TextInput,
     View,
 } from "react-native";
-import { supabase } from "../lib/supabase";
 import * as authService from "../services/authService";
 
 export default function ResetPasswordScreen() {
@@ -35,6 +35,7 @@ export default function ResetPasswordScreen() {
 
         try {
             setSubmitting(true);
+            const supabase = getSupabase();
             const { error } = await supabase.auth.updateUser({
                 password,
             });

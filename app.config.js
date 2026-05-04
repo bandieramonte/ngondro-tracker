@@ -1,14 +1,14 @@
-require("dotenv").config();
+import "dotenv/config";
 
 const scheme = process.env.SCHEME || "app108again";
 const isDev = scheme === "app108againdev";
 
-module.exports = {
+export default {
     expo: {
         name: "108 Again",
         slug: "108-again",
         scheme,
-        version: "1.0.6",
+        version: "1.0.7",
 
         orientation: "portrait",
         icon: "./assets/images/icon.png",

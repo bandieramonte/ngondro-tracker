@@ -1,6 +1,6 @@
 import HeaderMenu from "@/components/HeaderMenu";
 import HeaderTitle from "@/components/HeaderTitle";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { subscribeAuth } from "@/utils/events";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Stack, router } from "expo-router";
@@ -49,7 +49,7 @@ export default function Layout() {
                 handledDeepLink.current = true;
 
                 console.log("Setting recovery session...");
-
+                const supabase = getSupabase();
                 const { error } = await supabase.auth.setSession({
                     access_token,
                     refresh_token,

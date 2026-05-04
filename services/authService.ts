@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import * as profileRepo from "@/repositories/profileRepo";
 import * as syncService from "@/services/syncService";
 import { emitAuthChanged, subscribeAuthInvalid } from "@/utils/events";
@@ -66,7 +66,8 @@ async function loadProfileIntoState(userId: string, email: string | null) {
             firstName: null,
         });
     }
-
+    
+    const supabase = getSupabase();
     const { data, error } = await supabase
         .from("profiles")
         .select("first_name, updated_at")
@@ -101,7 +102,7 @@ async function loadProfileIntoState(userId: string, email: string | null) {
 export async function initializeAuth() {
     if (!authSubscriptionInitialized) {
         authSubscriptionInitialized = true;
-
+        const supabase = getSupabase();
         supabase.auth.onAuthStateChange(async (event, session) => {
 
             try {
@@ -146,7 +147,7 @@ export async function initializeAuth() {
     const {
         data: { session },
         error,
-    } = await supabase.auth.getSession();
+    } = await getSupabase().auth.getSession();
 
     if (error) {
         throw error;
@@ -188,7 +189,7 @@ export async function signUp(
         throw new Error("Password is required.");
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await getSupabase().auth.signUp({
         email: trimmedEmail,
         password,
         options: {
@@ -247,7 +248,7 @@ export async function signIn(email: string, password: string) {
         throw new Error("Password is required.");
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await getSupabase().auth.signInWithPassword({
         email: trimmedEmail,
         password,
     });
@@ -266,7 +267,7 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signOut() {
-    const { error } = await supabase.auth.signOut({
+    const { error } = await getSupabase().auth.signOut({
         scope: "local",
     });
 
@@ -285,7 +286,7 @@ export async function signOut() {
 export async function deleteAccount() {
     try {
         const { error } = await syncService.withTimeout(
-            supabase.functions.invoke("delete-user"),
+            () => getSupabase().functions.invoke("delete-user"),
             15000
         );
 
@@ -328,7 +329,7 @@ export async function resetPassword(email: string) {
 
     const redirectTo = `${Constants.expoConfig?.scheme ?? 'app108again'}://reset-password`;
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await getSupabase().auth.resetPasswordForEmail(email, {
         redirectTo,
     });
 

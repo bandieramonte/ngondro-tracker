@@ -1,22 +1,44 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl) {
-    throw new Error("Missing EXPO_PUBLIC_SUPABASE_URL");
+function requiredEnv(name: string, value: string | undefined): string {
+    if (value == null || value === "") {
+        throw new Error(`Missing ${name}`);
+    }
+    return value;
 }
 
-if (!supabaseKey) {
-    throw new Error("Missing EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY");
-}
+const supabaseUrl = requiredEnv(
+    "EXPO_PUBLIC_SUPABASE_URL",
+    process.env.EXPO_PUBLIC_SUPABASE_URL,
+);
+const supabaseKey = requiredEnv(
+    "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+);
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
+let client: SupabaseClient = createClient(supabaseUrl, supabaseKey, {
     auth: {
         storage: AsyncStorage,
         autoRefreshToken: true,
         persistSession: true,
-        detectSessionInUrl: true,
+        detectSessionInUrl: false, // safer in RN
     },
 });
+
+export function getSupabase() {
+    return client;
+}
+
+export function recreateSupabase() {
+    console.warn("🔥 Recreating Supabase client");
+
+    client = createClient(supabaseUrl, supabaseKey, {
+        auth: {
+            storage: AsyncStorage,
+            autoRefreshToken: true,
+            persistSession: true,
+            detectSessionInUrl: false,
+        },
+    });
+}

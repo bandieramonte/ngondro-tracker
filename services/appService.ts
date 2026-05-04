@@ -1,6 +1,6 @@
 import { DEFAULT_PRACTICES, SEEDED_IDS } from "@/constants/defaultPractices";
 import { enqueueWrite } from "@/database/writeQueue";
-import { supabase } from "@/lib/supabase";
+import { recreateSupabase } from "@/lib/supabase";
 import { randomUUID } from "expo-crypto";
 import { AppState } from "react-native";
 import { db, initializeDatabase } from "../database/db";
@@ -174,23 +174,15 @@ export async function restoreDefaults() {
 
 export function getCalendarStartDate(): Date {
 
-  const restore =
-    appMetaRepo.getMeta("lastRestoreDate");
-
-  const install =
-    appMetaRepo.getMeta("installDate");
-
-  const date =
-    restore ?? install ?? new Date().toISOString();
-
-  // return new Date(date);
-  return new Date(new Date().getTime());
+  const restore = appMetaRepo.getMeta("lastRestoreDate");
+  const install = appMetaRepo.getMeta("installDate");
+  const date = restore ?? install ?? new Date().toISOString();
+  return new Date(date);
 }
 
 export function ensureInstallDate() {
 
-  const existing =
-    appMetaRepo.getMeta("installDate");
+  const existing = appMetaRepo.getMeta("installDate");
 
   if (!existing) {
 
@@ -203,28 +195,20 @@ export function ensureInstallDate() {
 
 export async function handleAppResume() {
     const userId = authService.getCurrentUserId();
-
     if (!userId) return;
 
     if (shouldForceSync(INACTIVE_THRESHOLD)) {
         try {
-            console.log("Resume: waiting for network stabilization");
-
-            await new Promise(resolve =>
-                setTimeout(resolve, 1500)
-            );
-
-            await supabase.auth.getSession();
-
+            console.log("Resume: recovering network + client");
+            recreateSupabase();
+            syncService.setForceFreshClient(true);
+            await new Promise(r => setTimeout(r, 200));
             await syncService.requestSync(userId, {
                 immediate: true
             });
 
         } catch (e) {
-            console.warn(
-                "Auto-sync failed after resume",
-                e
-            );
+            console.warn("Auto-sync failed after resume", e);
         }
     }
 
@@ -254,7 +238,7 @@ export function initAppStateListener(onResume: () => void) {
             lastState.match(/inactive|background/) &&
             nextState === "active"
         ) {
-            console.log("App resumed 🔥");
+            console.log("App resumed");
             onResume();
         }
 
